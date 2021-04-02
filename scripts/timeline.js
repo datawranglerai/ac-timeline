@@ -115,8 +115,10 @@ am4core.ready(function() {
 	chart.dataSource.parser.options.useColumnNames = true;
 	chart.dataSource.parser.options.emptyAs = 0;
 
-	chart.dateFormatter.dateFormat = "yyyy-MM-dd";
-	chart.dateFormatter.inputDateFormat = "yyyy-MM-dd";
+	// chart.dateFormatter.dateFormat = "yyyy-MM-dd";
+	// chart.dateFormatter.inputDateFormat = "yyyy-MM-dd";
+	chart.dateFormatter.dateFormat = "yyyy G";
+	chart.dateFormatter.inputDateFormat = "yyyy G";
 	chart.fontSize = 11;
 
 	var categoryAxis = chart.yAxes.push(new am4charts.CategoryAxis());
@@ -127,9 +129,20 @@ am4core.ready(function() {
 	categoryAxis.renderer.innerRadius = -60;
 	categoryAxis.renderer.radius = 60;
 
-	var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
-	dateAxis.renderer.minGridDistance = 70;
-	dateAxis.baseInterval = { count: 1, timeUnit: "year" };
+	// var dateAxis = chart.xAxes.push(new am4charts.DateAxis());
+	// dateAxis.renderer.minGridDistance = 70;
+	// dateAxis.baseInterval = { count: 1, timeUnit: "day" };
+	// dateAxis.renderer.tooltipLocation = 0;
+	// dateAxis.startLocation = -0.5;
+	// dateAxis.renderer.line.strokeDasharray = "1,4";
+	// dateAxis.renderer.line.strokeOpacity = 0.6;
+	// dateAxis.tooltip.background.fillOpacity = 0.2;
+	// dateAxis.tooltip.background.cornerRadius = 5;
+	// dateAxis.tooltip.label.fill = new am4core.InterfaceColorSet().getFor("alternativeBackground");
+	// dateAxis.tooltip.label.paddingTop = 7;
+
+	var dateAxis = chart.xAxes.push(new am4charts.ValueAxis());
+	dateAxis.renderer.minGridDistance = 100;
 	dateAxis.renderer.tooltipLocation = 0;
 	dateAxis.startLocation = -0.5;
 	dateAxis.renderer.line.strokeDasharray = "1,4";
@@ -138,6 +151,11 @@ am4core.ready(function() {
 	dateAxis.tooltip.background.cornerRadius = 5;
 	dateAxis.tooltip.label.fill = new am4core.InterfaceColorSet().getFor("alternativeBackground");
 	dateAxis.tooltip.label.paddingTop = 7;
+	dateAxis.min = -76000;
+	dateAxis.max = 2040;
+	dateAxis.strictMinMax = true;
+	dateAxis.numberFormatter = new am4core.NumberFormatter();
+	dateAxis.numberFormatter.numberFormat = "# {Era}[/]"; 
 
 	var labelTemplate = dateAxis.renderer.labels.template;
 	labelTemplate.verticalCenter = "middle";
@@ -148,10 +166,12 @@ am4core.ready(function() {
 
 	var series = chart.series.push(new am4plugins_timeline.CurveColumnSeries());
 	series.columns.template.height = am4core.percent(20);
-	series.columns.template.tooltipText = "{Title}: [bold]{openDateX}[/] - [bold]{dateX}[/]";
+	// series.columns.template.tooltipText = "{Title}: [bold]{openDateX}[/] - [bold]{dateX}[/]";
 
-	series.dataFields.openDateX = "Start";
-	series.dataFields.dateX = "End";
+	// series.dataFields.openDateX = "Year Era";
+	// series.dataFields.dateX = "Year Era";
+	series.dataFields.openValueX = "Real Year";
+	series.dataFields.valueX = "Real Year";
 	series.dataFields.categoryY = "Game";
 	series.columns.template.propertyFields.fill = "color"; // get color from data
 	series.columns.template.propertyFields.stroke = "color";
@@ -162,7 +182,10 @@ am4core.ready(function() {
 	bullet.circle.strokeOpacity = 0;
 	bullet.propertyFields.fill = "color";
 	bullet.locationX = 0;
-
+	// bullet.tooltipText = "{Title}: [bold]{openDateX}[/]";
+	bullet.tooltipText = "{Title}: [bold]{Real Year} {Era}[/]";
+	bullet.tooltip.label.maxWidth = 150;
+	bullet.tooltip.label.wrap = true;
 
 	var bullet2 = series.bullets.push(new am4charts.CircleBullet());
 	bullet2.circle.radius = 3;
@@ -222,7 +245,7 @@ am4core.ready(function() {
 	cursor.lineX.strokeOpacity = 1;
 
 	dateAxis.renderer.tooltipLocation2 = 0;
-	categoryAxis.cursorTooltipEnabled = false;
+	categoryAxis.cursorTooltipEnabled = true;
 
 
 }); // end am4core.ready()
