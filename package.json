@@ -1,0 +1,31 @@
+{
+  "name": "ac-timeline",
+  "version": "1.0.0",
+  "description": "Assassin's Creed interactive timeline",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build",
+    "start": "npm run dev",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/datawranglerai/ac-timeline.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/datawranglerai/ac-timeline/issues"
+  },
+  "homepage": "https://github.com/datawranglerai/ac-timeline#readme",
+  "dependencies": {
+    "@amcharts/amcharts5": "^5.13.6",
+    "@amcharts/amcharts5-fonts": "^5.0.1"
+  },
+  "devDependencies": {
+    "vite": "^7.1.3"
+  }
+}
