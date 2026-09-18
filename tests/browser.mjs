@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
+import { DATASET_PATH } from '../src/data.js';
 
 // Optional browser verification: use an installed Playwright, or point to an existing one.
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -32,18 +33,21 @@ try {
   await page.goto(base);
   await page.waitForSelector('.memory-marker');
   await page.evaluate(() => document.fonts.ready);
-  assert.equal(await page.locator('#memory-total').innerText(), '48');
-  assert.match(await page.locator('#visible-status').innerText(), /48 of 48/);
+  assert.equal(await page.locator('#memory-total').innerText(), '87');
+  assert.equal(await page.locator('#game-total').innerText(), '16');
+  assert.equal(await page.locator('#year-count').innerText(), '79,000+');
+  assert.match(await page.locator('[data-era-card="isu"] small').innerText(), /77,000 BCE/);
+  assert.match(await page.locator('#visible-status').innerText(), /87 of 87/);
   await page.screenshot({ path: 'output/desktop.png', fullPage: true });
-  checks.push('all 48 source records load; desktop screenshot');
+  checks.push('all 87 V2 source records load; desktop screenshot');
 
   await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
-  assert.equal(await page.locator('.list-memory').count(), 48);
+  assert.equal(await page.locator('.list-memory').count(), 87);
   await page.locator('.list-memory').first().click();
   assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
-  assert.equal(await page.locator('#memory-title').innerText(), 'Shroud of Eden Created');
-  assert.match(await page.locator('.memory-meta').innerText(), /Consus/);
+  assert.equal(await page.locator('#memory-title').innerText(), 'Creation of the Pieces of Eden');
   await page.getByRole('button', { name: 'Next memory', exact: true }).click();
+  assert.match(await page.locator('.memory-meta').innerText(), /Consus/);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'memory-title');
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#memory-dialog').evaluate((el) => el.open), false);
@@ -51,11 +55,11 @@ try {
   checks.push('chronology, detail contents, and Escape dismissal');
 
   await page.locator('#search').fill('altair');
-  assert.equal(await page.locator('.list-memory').count(), 6);
+  assert.equal(await page.locator('.list-memory').count(), 12);
   await page.locator('#clear-filters').click();
   await page.locator('[data-filter="games"] summary').click();
   await page.locator(`input[name="games"][value="Assassin's Creed II"]`).check();
-  assert.equal(await page.locator('.list-memory').count(), 8);
+  assert.equal(await page.locator('.list-memory').count(), 10);
   await page.locator('[data-filter="characters"] summary').click();
   await page.locator('input[name="characters"][value="Ezio Auditore da Firenze"]').check();
   assert.equal(await page.locator('.list-memory').count(), 5);
@@ -66,7 +70,7 @@ try {
   assert.equal(await page.locator('#empty-state').isVisible(), true);
   assert.equal(await page.locator('[data-action="surprise"]').isDisabled(), true);
   await page.getByRole('button', { name: 'Show all memories', exact: true }).click();
-  assert.equal(await page.locator('.list-memory').count(), 48);
+  assert.equal(await page.locator('.list-memory').count(), 87);
   await page.locator('#search').fill('Daniel Cross');
   await page.locator('.list-memory').first().click();
   assert.equal(await page.locator('#memory-title').innerText(), 'Untitled memory');
@@ -75,9 +79,24 @@ try {
   await page.locator('#clear-filters').click();
   checks.push('empty-state recovery and missing-title disclosure');
 
+  await page.locator('#search').fill('Crawley');
+  assert.equal(await page.locator('.list-memory').count(), 1);
+  await page.locator('.list-memory').first().click();
+  assert.match(await page.locator('.memory-meta').innerText(), /Crawley, England/);
+  assert.match(await page.locator('.memory-meta').innerText(), /9 Nov 1,847 CE/);
+  await page.keyboard.press('Escape');
+  await page.locator('#search').fill('Eivor is Laid to Rest');
+  assert.equal(await page.locator('.list-memory').count(), 1);
+  await page.locator('.list-memory').first().click();
+  assert.match(await page.locator('.memory-year').innerText(), /920 CE/);
+  assert.match(await page.locator('.data-note').innerText(), /CE was inferred/);
+  await page.keyboard.press('Escape');
+  await page.locator('#clear-filters').click();
+  checks.push('V2 location search, recorded dates, and explicit recovery of the missing era');
+
   await page.getByRole('button', { name: 'Timeline view', exact: true }).click();
   await page.locator('[data-era="isu"]').click();
-  assert.match(await page.locator('#visible-status').innerText(), /5 of 48/);
+  assert.match(await page.locator('#visible-status').innerText(), /10 of 87/);
   await page.locator('#reset-view').click();
   await page.locator('#zoom-in').click();
   assert.notEqual(await page.locator('#zoom-level').innerText(), '1×');
@@ -89,7 +108,7 @@ try {
   assert.equal(await page.locator('#zoom-level').innerText(), '1×');
   await page.locator('#scale-mode').selectOption('linear');
   assert.equal(await page.locator('.gap-region').count(), 0);
-  assert.match(await page.locator('#visible-status').innerText(), /48 of 48/);
+  assert.match(await page.locator('#visible-status').innerText(), /87 of 87/);
   await page.locator('#scale-mode').selectOption('adaptive');
   assert.equal(await page.locator('.gap-region').count(), 1);
   checks.push('Isu range, zoom, pan, keyboard reset, and both time scales');
@@ -123,7 +142,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('.memory-marker.is-selected'));
   assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
   await page.locator('[data-era-card="renaissance"]').click();
-  assert.match(await page.locator('#visible-status').innerText(), /4 of 48/);
+  assert.match(await page.locator('#visible-status').innerText(), /4 of 87/);
   await page.locator('.memory-marker').first().click();
   const context = await assertMemoryContext(page);
   assert.ok(context.panel.x > context.x, 'A point on the left opens the panel to its right');
@@ -149,6 +168,11 @@ try {
 
   await page.getByRole('button', { name: /About the project/ }).click();
   assert.match(await page.locator('#info-content').innerText(), /compresses data-free gaps/);
+  const sourceUrl = await page.locator('#info-content a[download]').getAttribute('href');
+  assert.equal(sourceUrl, `./${DATASET_PATH}`);
+  const downloadedSource = await page.request.get(new URL(sourceUrl, base).href);
+  assert.equal(downloadedSource.status(), 200);
+  assert.match(await downloadedSource.text(), /Start,End,Category,Character,Game,Location/);
   await page.keyboard.press('Escape');
   await page.locator('#clear-filters').click();
   await page.locator('[data-nav="timeline"]').click();
@@ -205,19 +229,19 @@ try {
   await failure.unroute('**/data/**');
   await failure.getByRole('button', { name: 'Try again', exact: true }).click();
   await failure.waitForSelector('.memory-marker');
-  assert.match(await failure.locator('#visible-status').innerText(), /48 of 48/);
+  assert.match(await failure.locator('#visible-status').innerText(), /87 of 87/);
   checks.push('failed CSV loading and successful retry');
 
   const expanded = await browser.newPage();
-  const csv = await readFile(new URL("../data/Assassin's Creed Timeline - Data.csv", import.meta.url), 'utf8');
-  await expanded.route('**/data/**', (route) => route.fulfill({ status: 200, contentType: 'text/csv', body: csv.trimEnd() + '\n2050,FALSE,CE,2050,Future lore,New hero,Future AC,Test source,New chapter,,An added memory.\n' }));
+  const csv = await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), 'utf8');
+  await expanded.route('**/data/**', (route) => route.fulfill({ status: 200, contentType: 'text/csv', body: csv.trimEnd() + '\n2050,FALSE,CE,2050,2050-01-01,2050-01-01,Future lore,New hero,Future AC,Test City,Test source,New chapter,,An added memory.\n' }));
   await expanded.goto(base);
   await expanded.waitForSelector('.memory-marker');
-  assert.equal(await expanded.locator('#memory-total').innerText(), '49');
+  assert.equal(await expanded.locator('#memory-total').innerText(), '88');
   assert.match(await expanded.locator('#overview-last').innerText(), /2,050 CE/);
   await expanded.locator('[data-filter="games"] summary').click();
   await expanded.locator('input[name="games"][value="Future AC"]').check();
-  assert.match(await expanded.locator('#visible-status').innerText(), /1 of 49/);
+  assert.match(await expanded.locator('#visible-status').innerText(), /1 of 88/);
   checks.push('a new CSV game/year appears automatically in counts, bounds, and filters');
 
   assert.deepEqual(errors, []);

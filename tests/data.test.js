@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { parseCSV, loadEvents, filterEvents, formatYear, shortGame } from "../src/data.js";
+import { DATASET_PATH, parseCSV, loadEvents, filterEvents, formatYear, formatSourceDate, shortGame } from "../src/data.js";
 
 test("parseCSV handles BOM, CRLF, escaped quotes, and multiline fields", () => {
   const rows = parseCSV('\uFEFFYear,Era,Title,Description\r\n1,CE,"A, title","line one\r\nline ""two"""\r\n');
@@ -18,6 +18,10 @@ test("loadEvents validates headers and skips invalid dates", () => {
     year: -2,
     approx: true,
     era: "BCE",
+    eraInferred: false,
+    start: "",
+    end: "",
+    location: "",
     category: "Uncategorised",
     character: "Unknown character",
     game: "Unassigned game",
@@ -29,17 +33,43 @@ test("loadEvents validates headers and skips invalid dates", () => {
   });
 });
 
-test("real data loads all 48 rows and preserves approximate BCE dates", async () => {
-  const csv = await readFile(new URL("../data/Assassin's Creed Timeline - Data.csv", import.meta.url), "utf8");
+test("V2 loads all 87 records and preserves dates, locations, and the missing-era record", async () => {
+  const csv = await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), "utf8");
   const { events, warnings } = loadEvents(csv);
-  assert.equal(events.length, 48);
-  assert.equal(warnings.length, 0);
-  assert.equal(new Set(events.map(({ game }) => game)).size, 14);
+  assert.equal(events.length, 87);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /CE was inferred/);
+  assert.equal(new Set(events.map(({ game }) => game)).size, 17);
+  assert.equal(Math.min(...events.map(({ year }) => year)), -77000);
+  assert.equal(Math.max(...events.map(({ year }) => year)), 2030);
   const staff = events.find(({ title }) => title === "Manufacture of Staff of Hermes Trismegistus");
   assert.equal(staff.year, -75100);
   assert.equal(staff.approx, true);
   assert.equal(events.find(({ title }) => title === "Trojan War").year, -1260);
   assert.equal(events.find(({ title }) => title === "Shroud of Eden Created").source, "Timeline | Assassin's Creed Wiki");
+  const vinland = events.find(({ title }) => title === "Eivor is Laid to Rest in Vinland");
+  assert.equal(vinland.year, 920);
+  assert.equal(vinland.eraInferred, true);
+  const twins = events.find(({ title }) => title.startsWith("Birth of Jacob"));
+  assert.equal(twins.location, "Crawley, England");
+  assert.equal(twins.start, "1847-01-01");
+  assert.equal(twins.end, "1847-11-09");
+  assert.equal(filterEvents(events, { query: "Crawley" })[0].id, twins.id);
+  const induction = events.find(({ title }) => title.startsWith("Jacob and Evie Frye are inducted"));
+  assert.equal(induction.year, 1868);
+  assert.equal(induction.start, "1860-01-01");
+  assert.equal(induction.end, "1868-01-01");
+  assert.equal(formatSourceDate(staff.start), "1 Jan 75,100 BCE");
+  assert.equal(formatSourceDate(twins.end), "9 Nov 1,847 CE");
+});
+
+test("missing eras are inferred only from a matching signed year", () => {
+  const { events, warnings } = loadEvents('Year,Era,Real Year,Title\n920,,920,CE fallback\n500,,"-500",BCE fallback\n920,,,No fallback\n920,,900,Conflicting fallback\n920,TYPO,920,Invalid era\n');
+  assert.deepEqual(events.map(({ year, era, eraInferred }) => ({ year, era, eraInferred })), [
+    { year: 920, era: "CE", eraInferred: true },
+    { year: -500, era: "BCE", eraInferred: true },
+  ]);
+  assert.equal(warnings.length, 5);
 });
 
 test("filterEvents combines facets and accent-insensitive text search", () => {

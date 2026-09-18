@@ -1,3 +1,5 @@
+export const DATASET_PATH = "data/Assassin's Creed Timeline - Data V2.csv";
+
 const REQUIRED_HEADERS = ["Year", "Era", "Title"];
 
 /** Parse RFC 4180-style CSV, including escaped quotes and quoted newlines. */
@@ -89,9 +91,12 @@ export function loadEvents(text) {
 
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
-    const era = trimmed(row, "Era").toUpperCase();
+    let era = trimmed(row, "Era").toUpperCase();
     const rawYear = trimmed(row, "Year").replaceAll(",", "");
     const magnitude = Number(rawYear);
+    const realYear = Number(trimmed(row, "Real Year").replaceAll(",", ""));
+    const eraInferred = era === "" && Number.isInteger(realYear) && realYear !== 0 && Math.abs(realYear) === magnitude;
+    if (eraInferred) era = realYear < 0 ? "BCE" : "CE";
 
     if (
       (era !== "BCE" && era !== "CE")
@@ -102,6 +107,7 @@ export function loadEvents(text) {
       warnings.push(`Row ${rowNumber} has an invalid year or era and was skipped.`);
       return;
     }
+    if (eraInferred) warnings.push(`Record ${rowNumber - 1} is missing Era; ${era} was inferred from its signed Real Year.`);
 
     const titleValue = trimmed(row, "Title");
     const content = Object.keys(row).map((key) => `${key}:${trimmed(row, key)}`).join("|");
@@ -114,6 +120,10 @@ export function loadEvents(text) {
       year: era === "BCE" ? -Math.abs(magnitude) : Math.abs(magnitude),
       approx: /^(true|yes|1)$/i.test(trimmed(row, "Approx")),
       era,
+      eraInferred,
+      start: trimmed(row, "Start"),
+      end: trimmed(row, "End"),
+      location: trimmed(row, "Location"),
       category: trimmed(row, "Category") || "Uncategorised",
       character: trimmed(row, "Character") || "Unknown character",
       game: trimmed(row, "Game") || "Unassigned game",
@@ -158,6 +168,15 @@ export function formatYear(year, approx = false) {
     ? `${Math.abs(numericYear).toLocaleString("en-GB")} BCE`
     : `${numericYear.toLocaleString("en-GB")} CE`;
   return approx ? `c. ${label}` : label;
+}
+
+export function formatSourceDate(value) {
+  const match = /^(-?\d+)-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const [, year, month, day] = match.map(Number);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  if (!year || !months[month - 1] || day < 1 || day > 31) return value;
+  return `${day} ${months[month - 1]} ${formatYear(year)}`;
 }
 
 export function shortGame(game) {
