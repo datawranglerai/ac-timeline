@@ -22,7 +22,8 @@
 
 html {
   scroll-behavior:smooth;
-  scroll-padding-top:26px
+  scroll-padding-top:26px;
+  scrollbar-gutter:stable
 }
 
 body {
@@ -1040,6 +1041,40 @@ h2 {
   transform:none
 }
 
+.memory-marker.is-selected:before {
+  border-color:#f5faf7;
+  background:#f5faf7;
+  box-shadow:0 0 10px #ffffff80,0 0 28px #ffffff30
+}
+
+.memory-marker.is-selected:after {
+  content:'';
+  position:absolute;
+  width:32px;
+  height:32px;
+  border:1px solid #ffffff70;
+  border-radius:50%;
+  box-shadow:0 0 18px #ffffff20;
+  opacity:.35;
+  animation:memory-beacon 2.8s ease-in-out infinite;
+  pointer-events:none
+}
+
+.memory-marker.is-selected .cluster-count {
+  color:var(--bg)
+}
+
+.memory-marker.is-selected .memory-label,
+.memory-marker.is-selected .memory-label small {
+  color:#f5faf7;
+  text-shadow:0 1px 8px #0009
+}
+
+@keyframes memory-beacon {
+  0%,100% { transform:scale(.85); opacity:.4 }
+  50% { transform:scale(1.65); opacity:.1 }
+}
+
 .gap-region {
   position:absolute;
   top:0;
@@ -1610,6 +1645,25 @@ dialog::backdrop {
   margin:20px 20px 20px auto;
   height:calc(100dvh - 40px);
   max-width:calc(100% - 40px)
+}
+
+html:has(#memory-dialog[open]) {
+  overflow:hidden
+}
+
+.memory-dialog.has-timeline-context {
+  position:fixed;
+  inset:var(--memory-panel-y) auto auto var(--memory-panel-x);
+  margin:0;
+  width:var(--memory-panel-width);
+  height:var(--memory-panel-height);
+  max-width:calc(100% - 20px);
+  max-height:calc(100dvh - 20px)
+}
+
+.memory-dialog.has-timeline-context::backdrop {
+  background:radial-gradient(ellipse 155px 120px at var(--memory-focus-x) var(--memory-focus-y),#07100d00 10%,#07100d18 35%,#07100dc7 100%);
+  backdrop-filter:none
 }
 
 .dialog-top {

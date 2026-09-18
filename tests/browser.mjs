@@ -9,6 +9,23 @@ const errors = [];
 const checks = [];
 await mkdir('output', { recursive: true });
 
+async function assertMemoryContext(page) {
+  const point = page.locator('.memory-marker.is-selected');
+  assert.equal(await point.count(), 1);
+  const marker = await point.boundingBox();
+  const panel = await page.locator('#memory-dialog').boundingBox();
+  const x = marker.x + marker.width / 2, y = marker.y + marker.height / 2;
+  assert.ok(x < panel.x - 25 || x > panel.x + panel.width + 25 || y < panel.y - 25 || y > panel.y + panel.height + 25, 'The selected point must remain exposed beside the panel');
+  const spotlight = await page.locator('#memory-dialog').evaluate((dialog) => {
+    const backdrop = getComputedStyle(dialog, '::backdrop');
+    return { x: parseFloat(dialog.style.getPropertyValue('--memory-focus-x')), y: parseFloat(dialog.style.getPropertyValue('--memory-focus-y')), image: backdrop.backgroundImage, blur: backdrop.backdropFilter };
+  });
+  assert.ok(Math.abs(spotlight.x - x) < 1 && Math.abs(spotlight.y - y) < 1, 'The spotlight follows the actual marker');
+  assert.match(spotlight.image, /radial-gradient/);
+  assert.equal(spotlight.blur, 'none');
+  return { x, y, panel };
+}
+
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 }, deviceScaleFactor: 1 });
   page.on('pageerror', (error) => errors.push(error.message));
@@ -23,6 +40,7 @@ try {
   await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
   assert.equal(await page.locator('.list-memory').count(), 48);
   await page.locator('.list-memory').first().click();
+  assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
   assert.equal(await page.locator('#memory-title').innerText(), 'Shroud of Eden Created');
   assert.match(await page.locator('.memory-meta').innerText(), /Consus/);
   await page.getByRole('button', { name: 'Next memory', exact: true }).click();
@@ -95,13 +113,34 @@ try {
   checks.push('actual scroll zoom, pointer drag, and keyboard overview handles');
 
   await page.locator('.memory-marker.cluster').first().click();
+  await assertMemoryContext(page);
   assert.ok(await page.locator('.cluster-memory').count() > 1);
   await page.locator('.cluster-memory').first().click();
+  await assertMemoryContext(page);
   assert.equal(await page.locator('#memory-dialog').evaluate((el) => el.open), true);
   assert.equal(await page.evaluate(() => document.activeElement.id), 'memory-title');
   await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('.memory-marker.is-selected'));
+  assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
   await page.locator('[data-era-card="renaissance"]').click();
   assert.match(await page.locator('#visible-status').innerText(), /4 of 48/);
+  await page.locator('.memory-marker').first().click();
+  const context = await assertMemoryContext(page);
+  assert.ok(context.panel.x > context.x, 'A point on the left opens the panel to its right');
+  assert.equal(await page.locator('.memory-marker.is-selected').evaluate((point) => getComputedStyle(point, '::after').animationName), 'memory-beacon');
+  await page.screenshot({ path: 'output/memory-context-desktop.png' });
+  await page.getByRole('button', { name: 'Next memory', exact: true }).click();
+  await assertMemoryContext(page);
+  await page.setViewportSize({ width: 1000, height: 820 });
+  await page.waitForFunction(() => document.querySelector('#memory-dialog').getBoundingClientRect().right <= innerWidth);
+  await assertMemoryContext(page);
+  await page.setViewportSize({ width: 1440, height: 1100 });
+  await page.keyboard.press('Escape');
+  await page.locator('.memory-marker').last().click();
+  const rightContext = await assertMemoryContext(page);
+  assert.ok(rightContext.panel.x + rightContext.panel.width < rightContext.x, 'A point on the right opens the panel to its left');
+  await page.mouse.click(rightContext.x, rightContext.y);
+  assert.equal(await page.locator('#memory-dialog').evaluate((dialog) => dialog.open), false);
   await page.locator('.memory-marker').first().click();
   await page.locator('[data-follow-character]').click();
   assert.equal(await page.locator('#list-view').isVisible(), true);
@@ -130,6 +169,29 @@ try {
   const filterBox = await mobile.locator('[data-filter="characters"] .filter-panel').boundingBox();
   assert.ok(filterBox.x >= 0 && filterBox.x + filterBox.width <= 390);
   await mobile.keyboard.press('Escape');
+  const mobileMarker = mobile.locator('.memory-marker:not(.cluster)').first();
+  await mobileMarker.evaluate((point) => {
+    const y = point.getBoundingClientRect().top + point.clientHeight / 2;
+    window.scrollBy({ top: y - innerHeight * 0.3, behavior: 'instant' });
+  });
+  await mobileMarker.click();
+  const mobileContext = await assertMemoryContext(mobile);
+  assert.ok(mobileContext.panel.y > mobileContext.y, 'The compact panel leaves the point above it');
+  await mobile.screenshot({ path: 'output/memory-context-mobile.png' });
+  await mobile.emulateMedia({ reducedMotion: 'reduce' });
+  assert.equal(await mobile.locator('.memory-marker.is-selected').evaluate((point) => getComputedStyle(point, '::after').animationName), 'none');
+  await mobile.keyboard.press('Escape');
+  await mobileMarker.evaluate((point) => {
+    const y = point.getBoundingClientRect().top + point.clientHeight / 2;
+    window.scrollBy({ top: y - innerHeight * 0.72, behavior: 'instant' });
+  });
+  await mobileMarker.click();
+  const lowerContext = await assertMemoryContext(mobile);
+  assert.ok(lowerContext.panel.y + lowerContext.panel.height < lowerContext.y, 'The compact panel leaves the point below it');
+  await mobile.getByRole('button', { name: 'Close memory details', exact: true }).click();
+  await mobile.waitForFunction(() => !document.querySelector('.memory-marker.is-selected'));
+  assert.equal(await mobile.locator('.memory-marker.is-selected').count(), 0);
+  checks.push('selected-point spotlight, opposing panel placement, resize tracking, dismissal, and reduced motion');
   await mobile.getByRole('button', { name: 'Chronological list view', exact: true }).click();
   await mobile.locator('.list-memory').first().click();
   const dialogBox = await mobile.locator('#memory-dialog').boundingBox();

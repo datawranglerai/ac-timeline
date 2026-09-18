@@ -172,6 +172,7 @@ function renderTimeline() {
   }).join('');
   $('#plot-area').innerHTML = markup;
   renderOverview();
+  syncMemoryContext();
 }
 
 function renderOverview() {
@@ -225,9 +226,51 @@ function resetFilters() { state.query = ''; state.games = []; state.categories =
 function resetAll() { resetFilters(); state.viewport = [0, 1]; state.era = 'all'; render(); }
 
 let memoryOpener = null;
+let memoryContextIds = [];
+
+function syncMemoryContext() {
+  const dialog = $('#memory-dialog');
+  $$('.memory-marker.is-selected').forEach((marker) => marker.classList.remove('is-selected'));
+  dialog.classList.remove('has-timeline-context');
+  if (!dialog.open || state.view !== 'timeline') return;
+
+  const marker = $$('.memory-marker').find((point) =>
+    state.groups.get(point.dataset.group)?.some((event) => memoryContextIds.includes(event.id))
+  );
+  if (!marker) return;
+  const rect = marker.getBoundingClientRect();
+  const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+  const width = document.documentElement.clientWidth, height = window.innerHeight;
+  if (x < 0 || x > width || y < 0 || y > height) return;
+
+  // Keep the actual source point exposed; the native dialog still owns focus.
+  const compact = width < 900;
+  const margin = compact ? 10 : 20;
+  const gap = 72;
+  let panelX, panelY, panelWidth, panelHeight;
+  if (compact) {
+    const below = y < height / 2;
+    panelWidth = width - margin * 2;
+    panelHeight = Math.min(height * 0.72, (below ? height - y : y) - gap - margin);
+    panelX = margin;
+    panelY = below ? height - margin - panelHeight : margin;
+  } else {
+    const right = x < width / 2;
+    panelWidth = Math.min(510, (right ? width - x : x) - gap - margin);
+    panelHeight = height - margin * 2;
+    panelX = right ? width - margin - panelWidth : margin;
+    panelY = margin;
+  }
+  marker.classList.add('is-selected');
+  dialog.classList.add('has-timeline-context');
+  const properties = { 'focus-x': x, 'focus-y': y, 'panel-x': panelX, 'panel-y': panelY, 'panel-width': panelWidth, 'panel-height': panelHeight };
+  for (const [name, value] of Object.entries(properties)) dialog.style.setProperty(`--memory-${name}`, `${value}px`);
+}
+
 function presentMemory() {
   const dialog = $('#memory-dialog');
   if (!dialog.open) { memoryOpener = document.activeElement; dialog.showModal(); }
+  syncMemoryContext();
   const title = $('#memory-title');
   title.tabIndex = -1;
   title.focus({ preventScroll: true });
@@ -238,6 +281,7 @@ function openMemory(id) {
   const event = state.events.find((memory) => memory.id === id);
   if (!event) return;
   state.selectedId = id;
+  memoryContextIds = [id];
   const sequence = state.filtered.length ? state.filtered : state.events;
   const index = sequence.findIndex((memory) => memory.id === id);
   const image = sourceImage(event);
@@ -253,6 +297,8 @@ function openGroup(id) {
   if (!events?.length) return;
   if (events.length === 1) return openMemory(events[0].id);
   clusterEvents = events;
+  state.selectedId = null;
+  memoryContextIds = events.map((event) => event.id);
   $('#memory-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">CONNECTED MEMORIES</p><button class="close-button" data-close="memory" aria-label="Close connected memories">×</button></div><div class="memory-body"><p class="memory-year">${escape(formatYear(events[0].year))}${events.at(-1).year !== events[0].year ? ` — ${escape(formatYear(events.at(-1).year))}` : ''}</p><h2 id="memory-title">${events.length} threads of history.</h2><p class="cluster-intro">These memories share a moment in time. Open a story, or zoom in to see how they connect.</p><div class="memory-actions"><button class="secondary-button" data-action="zoom-cluster">Zoom into this period ${icon('plus')}</button></div><div class="cluster-list">${events.map((event) => `<button class="cluster-memory" data-event="${event.id}"><span><small>${escape(formatYear(event.year, event.approx))}</small>${escape(prettyTitle(event))}</span><span aria-hidden="true">↗</span></button>`).join('')}</div></div>`;
   presentMemory();
 }
@@ -316,11 +362,16 @@ function setupInteractions() {
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
   });
   $('#memory-dialog').addEventListener('close', () => {
+    memoryContextIds = [];
+    state.selectedId = null;
+    syncMemoryContext();
     const fallback = state.view === 'list' ? $('#list-view button') : $('#timeline-viewport');
     const target = memoryOpener?.isConnected && memoryOpener.getClientRects().length ? memoryOpener : fallback || $('#search');
     target.focus({ preventScroll: true });
     memoryOpener = null;
   });
+  window.addEventListener('resize', syncMemoryContext);
+  window.addEventListener('scroll', syncMemoryContext, { passive: true });
   setupChartGestures();
 }
 

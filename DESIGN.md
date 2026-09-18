@@ -13,7 +13,7 @@ Make all supplied memories explorable, including the distant Isu era. Enable era
 Fans browse connections between games; lore enthusiasts locate characters and artifacts; the dataset owner adds new records. Desktop supports broad exploration; mobile supports focused browsing and details.
 
 ## Information architecture
-One page: primary navigation, cinematic introduction, era navigation, filter toolbar, timeline/chronological-list switch, overview navigator, curated entry points, footer. Memory details use an accessible modal drawer. An About dialog explains sources and the scale.
+One page: primary navigation, cinematic introduction, era navigation, filter toolbar, timeline/chronological-list switch, overview navigator, curated entry points, footer. Memory details use an accessible modal drawer that leaves the selected timeline point exposed. An About dialog explains sources and the scale.
 
 ## Design principles
 History before interface chrome. Show the whole story, then reveal detail as users zoom. A segmented overview compresses empty centuries and gives populated periods room; a labeled linear alternative and real date labels preserve clarity. Never silently correct source dates or invent missing titles.
@@ -28,10 +28,10 @@ Shared buttons, segmented controls, filter popovers with native checkbox/select 
 Target WCAG 2.2 AA: visible focus, labeled controls, keyboard equivalents for pan/zoom, touch targets, semantic buttons, dialogs with focus restoration, polite status announcements, reduced-motion support, and a chronological list alternative. No essential hover-only information; color always has a text equivalent.
 
 ## Responsive behavior
-At <=1000px tighten margins and hero; at <=700px stack hero metadata, simplify navigation, wrap filter controls, retain a scrollable era strip, and use a compact timeline with optional chronology view. The page must not overflow horizontally.
+At <=1000px tighten margins and hero; at <=700px stack hero metadata, simplify navigation, wrap filter controls, retain a scrollable era strip, and use a compact timeline with optional chronology view. The page must not overflow horizontally. Contextual memory panels occupy the side opposite the selected point; below 900px they occupy the space above or below it and scroll internally.
 
 ## Interaction states
-Initial loading and fetch/parse errors are explicit with retry. No-match state offers reset filters. Selected filters show counts. Zoom is clamped; buttons disable at limits. Details preserve approximate dates, blank fields, and source labels. Network is required only for initial local file loads; fonts have system fallbacks.
+Initial loading and fetch/parse errors are explicit with retry. No-match state offers reset filters. Selected filters show counts. Zoom is clamped; buttons disable at limits. Details preserve approximate dates, blank fields, and source labels. Opening a timeline memory or group dims the surrounding page but leaves a soft, unblurred spotlight on the actual selected marker, with a slow white pulse. Reduced motion keeps a steady glow. Paging memories updates the spotlight when the corresponding point is visible; closing removes it and restores focus. List-only memories use the standard drawer. Network is required only for initial local file loads; fonts have system fallbacks.
 
 ## Content voice
 Inviting, succinct, lore-aware. Use “memories” for records, while explaining the dataset plainly. “All eras”, “Explore this era”, and “Reset view” are direct actions. Display BCE/CE explicitly and c. for approximate years. No false real-time connection or invented system status.
