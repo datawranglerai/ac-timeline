@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111715">
+    <meta name="description" content="Explore the hidden history of Assassin's Creed. An interactive timeline of the Isu, Assassins, and Pieces of Eden, across thousands of years.">
+    <title>The Animus Archive — An Assassin's Creed Timeline</title>
+    <link rel="icon" href="./assets/insignia.svg" type="image/svg+xml">
+    <link rel="preload" href="./assets/florence-hero.jpg" as="image">
+    <link rel="stylesheet" href="./src/styles.css">
+    <script type="module" src="./src/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#explorer">Skip to the timeline</a>
+    <header class="site-header">
+      <a class="wordmark" href="./" aria-label="The Animus Archive home">
+        <img src="./assets/insignia.svg" alt="" width="36" height="42">
+        <span>THE ANIMUS <span class="wordmark-light">ARCHIVE</span><small>AN ASSASSIN’S CREED TIMELINE</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a class="nav-link active" href="#explorer" data-nav="timeline">Timeline</a>
+        <a class="nav-link" href="#explorer" data-nav="archive">Memory archive</a>
+        <button class="nav-link" type="button" data-action="about">About the project <span aria-hidden="true">↗</span></button>
+      </nav>
+      <span class="header-note"><span class="tiny-diamond" aria-hidden="true"></span> THE PAST IS NEVER LOST</span>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-image" aria-hidden="true"></div>
+        <div class="hero-geometry" aria-hidden="true"></div>
+        <div class="hero-content">
+          <p class="eyebrow"><span class="short-rule"></span> NOTHING IS TRUE. EVERYTHING IS CONNECTED.</p>
+          <h1 id="hero-title">History is written<br>in the <em>shadows.</em></h1>
+          <p class="hero-description">From the First Civilization to the modern day.<br> Explore the memories that connect the world of Assassin’s Creed.</p>
+          <div class="hero-bottom">
+            <a class="primary-button" href="#explorer">Enter the timeline <span aria-hidden="true">↓</span></a>
+            <div class="hero-stat"><strong id="year-count">77,000+</strong><span>YEARS OF HIDDEN HISTORY</span></div>
+          </div>
+        </div>
+        <div class="hero-caption"><span class="tiny-diamond" aria-hidden="true"></span><span>FLORENCE, ITALY<small>THE ITALIAN RENAISSANCE</small></span><span class="caption-line"></span><span>01 / ∞</span></div>
+      </section>
+
+      <section class="explorer page-width" id="explorer" aria-labelledby="explorer-title">
+        <div class="section-heading">
+          <div><p class="eyebrow muted">THE THREADS OF HISTORY</p><h2 id="explorer-title">One world. Countless stories.</h2></div>
+          <div class="dataset-counts"><span><strong id="memory-total">—</strong> memories</span><span class="small-divider"></span><span><strong id="game-total">—</strong> games</span><button class="icon-button help-button" data-action="help" aria-label="How to explore the timeline">?</button></div>
+        </div>
+
+        <div class="era-navigation" id="era-navigation" role="group" aria-label="Jump to an era"></div>
+
+        <div class="timeline-shell" id="timeline-shell">
+          <div class="filter-toolbar">
+            <label class="search-box"><span data-icon="search"></span><input id="search" type="search" placeholder="Search the memories…" aria-label="Search memories" autocomplete="off"><kbd>/</kbd></label>
+            <div class="filter-controls" id="filters"></div>
+            <button class="text-button clear-filters" id="clear-filters" hidden>Clear filters <span aria-hidden="true">×</span></button>
+            <div class="view-switch" role="group" aria-label="Display mode">
+              <button class="active" data-view="timeline" aria-label="Timeline view" aria-pressed="true"><span data-icon="timeline"></span></button>
+              <button data-view="list" aria-label="Chronological list view" aria-pressed="false"><span data-icon="list"></span></button>
+            </div>
+          </div>
+          <div class="chart-toolbar">
+            <div class="visible-status"><span class="status-dot"></span><span id="visible-status" role="status" aria-live="polite">Loading memories…</span></div>
+            <div class="chart-options"><label for="scale-mode">Time scale</label><select id="scale-mode"><option value="adaptive">Adaptive</option><option value="linear">Linear</option></select><span class="small-divider"></span><button class="text-button" id="reset-view"><span data-icon="reset"></span> Reset view</button></div>
+          </div>
+          <div class="loading-state" id="loading-state"><span class="loading-symbol">◇</span><p>Retrieving the memories…</p></div>
+          <div id="timeline-view" hidden>
+            <div class="chart-layout">
+              <div class="lane-labels" id="lane-labels" aria-hidden="true"></div>
+              <div class="timeline-viewport" id="timeline-viewport" tabindex="0" role="region" aria-label="Interactive timeline. Use plus and minus to zoom, arrow keys to pan, and Home to reset.">
+                <div class="time-axis" id="time-axis" aria-hidden="true"></div>
+                <div class="plot-area" id="plot-area"></div>
+              </div>
+            </div>
+            <div class="chart-footer"><p><span data-icon="hand"></span> Drag to travel <span class="footer-separator">·</span> Scroll to zoom <span class="footer-separator">·</span> Select a memory to explore</p><div class="zoom-controls"><button id="pan-left" class="icon-button" aria-label="Pan earlier"><span data-icon="left"></span></button><button id="zoom-out" class="icon-button" aria-label="Zoom out"><span data-icon="minus"></span></button><span id="zoom-level">1×</span><button id="zoom-in" class="icon-button" aria-label="Zoom in"><span data-icon="plus"></span></button><button id="pan-right" class="icon-button" aria-label="Pan later"><span data-icon="right"></span></button></div></div>
+            <div class="overview-section"><span class="overview-label">ALL OF HISTORY</span><div class="overview" id="overview" aria-label="Timeline overview"><svg id="overview-marks" aria-hidden="true" viewBox="0 0 1000 36" preserveAspectRatio="none"></svg><div class="overview-selection" id="overview-selection"><span></span><span></span></div><input id="overview-start" type="range" min="0" max="999" value="0" aria-label="Visible timeline start"><input id="overview-end" type="range" min="1" max="1000" value="1000" aria-label="Visible timeline end"></div><div class="overview-dates"><span id="overview-first"></span><span class="scale-explanation"><span class="break-symbol" aria-hidden="true">//</span> Long gaps in history are compressed</span><span id="overview-last"></span></div></div>
+          </div>
+          <div id="list-view" class="list-view" hidden></div>
+          <div id="empty-state" class="empty-state" hidden><span data-icon="search"></span><h3>No memories found in this view.</h3><p>Try another search, widen the timeline, or clear your filters.</p><button class="secondary-button" data-action="reset-all">Show all memories</button></div>
+        </div>
+        <div class="timeline-note"><span>EVERY MEMORY IS PART OF SOMETHING GREATER.</span><span><i class="approx-dot"></i> c. indicates an approximate date <span class="note-separator">/</span> Dates follow the source dataset</span></div>
+      </section>
+
+      <section class="discover page-width" aria-labelledby="discover-title">
+        <div class="discover-heading"><div><p class="eyebrow muted">CHOOSE YOUR POINT OF DEPARTURE</p><h2 id="discover-title">History has its turning points.</h2></div><button class="text-button" data-action="surprise">Find me a memory <span data-icon="right"></span></button></div>
+        <div class="discovery-grid">
+          <button class="discovery-card isu-card" data-era-card="isu"><span class="isu-art" aria-hidden="true"><span></span><span></span><span></span></span><span class="discovery-top"><span class="card-index">01</span><span>BEFORE THE CREED</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>75,383–75,000 BCE</small><strong>Those who came before.</strong><span>Discover the world of the Isu <span aria-hidden="true">→</span></span></span></button>
+          <button class="discovery-card renaissance-card" data-era-card="renaissance"><span class="discovery-top"><span class="card-index">02</span><span>A NEW AGE OF ASSASSINS</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>1400–1600 CE</small><strong>A legacy in the making.</strong><span>Follow the story of Ezio <span aria-hidden="true">→</span></span></span></button>
+          <button class="discovery-card pirate-card" data-era-card="empires"><span class="discovery-top"><span class="card-index">03</span><span>NOT ALL TREASURE IS GOLD</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>1600–1900 CE</small><strong>Nothing is out of reach.</strong><span>Set sail with the Kenways <span aria-hidden="true">→</span></span></span></button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer page-width"><div class="footer-brand"><img src="./assets/insignia.svg" alt="" width="23" height="28"><span>THE ANIMUS ARCHIVE</span></div><p>An independent fan project. Assassin’s Creed belongs to Ubisoft.</p><button class="text-button" data-action="about">Built for the curious <span aria-hidden="true">↗</span></button></footer>
+    <dialog class="memory-dialog" id="memory-dialog" aria-labelledby="memory-title"><div id="memory-content"></div></dialog>
+    <dialog class="info-dialog" id="info-dialog" aria-labelledby="info-title"><div id="info-content"></div></dialog>
+  </body>
+</html>
