@@ -42,6 +42,7 @@ const lanes = [
 ];
 const laneFor = (event) => lanes.find((lane) => lane.categories.includes(event.category)) || lanes[3];
 const state = { events: [], filtered: [], visible: [], query: '', games: [], categories: [], characters: [], view: 'timeline', mode: 'adaptive', viewport: [0, 1], era: 'all', scale: null, groups: new Map(), selectedId: null };
+let cancelChartGestures = () => {};
 const prettyTitle = (event) => event.title.replace(/\[([^\]]+)\]/g, (_, options) => options.split('|')[0]);
 const percent = (value) => `${(value * 100).toFixed(5)}%`;
 const roundedYear = (value) => Math.round(value) || (value < 0 ? -1 : 1);
@@ -64,12 +65,13 @@ function setupFilters() {
   $('#filters').addEventListener('change', (event) => {
     const input = event.target;
     if (!input.matches('input[type="checkbox"]')) return;
+    cancelChartGestures();
     state[input.name] = $$(`input[name="${input.name}"]:checked`).map((checkbox) => checkbox.value);
     render();
   });
   $('#filters').addEventListener('click', (event) => {
     const clear = event.target.closest('[data-clear]');
-    if (clear) { state[clear.dataset.clear] = []; syncFilters(); render(); }
+    if (clear) { cancelChartGestures(); state[clear.dataset.clear] = []; syncFilters(); render(); }
   });
   $$('.filter').forEach((details) => details.addEventListener('toggle', () => {
     if (details.open) $$('.filter').forEach((other) => { if (other !== details) other.open = false; });
@@ -92,6 +94,7 @@ function setupEras() {
 }
 
 function focusYears(min, max, padding = 0.08) {
+  cancelChartGestures();
   const left = state.scale.toUnit(min), right = state.scale.toUnit(max);
   const span = Math.max(0.012, right - left);
   state.viewport = clampViewport((left + right - span) / 2 - span * padding, (left + right + span) / 2 + span * padding);
@@ -100,6 +103,7 @@ function focusYears(min, max, padding = 0.08) {
 function selectEra(id) {
   const era = eras.find((item) => item.id === id);
   if (!era || !state.scale) return;
+  cancelChartGestures();
   state.era = id;
   if (id === 'all') state.viewport = [0, 1];
   else {
@@ -206,9 +210,15 @@ function render() {
   state.visible = state.filtered.filter((event) => { const unit = state.scale.toUnit(event.year); return unit >= state.viewport[0] - 1e-9 && unit <= state.viewport[1] + 1e-9; });
   syncFilters();
   $('#visible-status').textContent = `${state.visible.length} of ${state.events.length} memories in view${state.era !== 'all' ? ` · ${eras.find((era) => era.id === state.era).name}` : ''}`;
-  $('#timeline-view').hidden = state.view !== 'timeline' || !state.visible.length;
+  const hasMatches = state.filtered.length > 0;
+  $('#timeline-view').hidden = state.view !== 'timeline' || !hasMatches;
+  $('#timeline-gap').hidden = !hasMatches || state.visible.length > 0;
   $('#list-view').hidden = state.view !== 'list' || !state.visible.length;
-  $('#empty-state').hidden = state.visible.length > 0;
+  $('#empty-state').hidden = hasMatches && (state.view === 'timeline' || state.visible.length > 0);
+  $('#empty-state h3').textContent = hasMatches ? 'No memories in this period.' : 'No memories match your filters.';
+  $('#empty-state p').textContent = hasMatches ? 'Widen the date range to see your matching memories.' : 'Try another search or clear your filters.';
+  $('#empty-state button').dataset.action = hasMatches ? 'fit-matches' : 'reset-all';
+  $('#empty-state button').textContent = hasMatches ? 'Show matching memories' : 'Show all memories';
   $('[data-action="surprise"]').disabled = state.filtered.length === 0;
   $$('[data-era]').forEach((button) => { const active = button.dataset.era === state.era; button.classList.toggle('active', active); button.setAttribute('aria-pressed', active); });
   $$('[data-view]').forEach((button) => { const active = button.dataset.view === state.view; button.classList.toggle('active', active); button.setAttribute('aria-pressed', active); });
@@ -219,15 +229,31 @@ function render() {
   $('#zoom-in').disabled = span <= 0.00101;
   $('#pan-left').disabled = state.viewport[0] <= 0;
   $('#pan-right').disabled = state.viewport[1] >= 1;
-  if (state.view === 'timeline' && state.visible.length) renderTimeline();
+  if (!$('#timeline-view').hidden) renderTimeline();
   else if (state.view === 'list') renderList();
 }
 
-function navigateViewport(viewport) { state.viewport = viewport; state.era = 'all'; render(); }
+function navigateViewport(viewport, continuous = false) {
+  if (!continuous) cancelChartGestures();
+  const next = clampViewport(...viewport);
+  if (continuous && next.every((value, index) => Math.abs(value - state.viewport[index]) < 1e-12)) return;
+  state.viewport = next;
+  state.era = 'all';
+  render();
+}
 function zoom(factor, anchor = 0.5) { navigateViewport(zoomViewport(state.viewport, factor, anchor)); }
 function pan(direction) { navigateViewport(panViewport(state.viewport, direction * (state.viewport[1] - state.viewport[0]) * 0.25)); }
-function resetFilters() { state.query = ''; state.games = []; state.categories = []; state.characters = []; $('#search').value = ''; }
+function resetFilters() { cancelChartGestures(); state.query = ''; state.games = []; state.categories = []; state.characters = []; $('#search').value = ''; }
 function resetAll() { resetFilters(); state.viewport = [0, 1]; state.era = 'all'; render(); }
+
+function fitMatchingMemories() {
+  if (!state.filtered.length) return;
+  focusYears(state.filtered[0].year, state.filtered.at(-1).year);
+  state.era = 'all';
+  render();
+  const target = state.view === 'timeline' ? $('#timeline-viewport') : $('#list-view button');
+  target?.focus({ preventScroll: true });
+}
 
 let memoryOpener = null;
 let memoryContextIds = [];
@@ -272,6 +298,7 @@ function syncMemoryContext() {
 }
 
 function presentMemory() {
+  cancelChartGestures();
   const dialog = $('#memory-dialog');
   if (!dialog.open) { memoryOpener = document.activeElement; dialog.showModal(); }
   syncMemoryContext();
@@ -308,6 +335,7 @@ function openGroup(id) {
 }
 
 function showInfo(type) {
+  cancelChartGestures();
   const help = type === 'help';
   $('#info-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">THE ANIMUS ARCHIVE</p><button class="close-button" data-close="info" aria-label="Close information">×</button></div><div class="info-body"><h2 id="info-title">${help ? 'Follow your curiosity.' : 'The past is never lost.'}</h2>${help ? `<p>Every point is a memory. Start with an era, follow a character, or see where the threads of history lead.</p><div class="help-row"><strong>Travel in time</strong><span>Drag the timeline or use the arrow buttons. With the chart focused, use the left and right arrow keys.</span></div><div class="help-row"><strong>Look closer</strong><span>Scroll over the timeline, press + / −, or use the zoom buttons. The overview handles adjust the start and end independently.</span></div><div class="help-row"><strong>Find a story</strong><span>Search names, titles, games, or descriptions. Games, categories, and characters can be combined. Press / to search.</span></div><div class="help-row"><strong>Open a memory</strong><span>Select a diamond or a numbered group. The list button offers the same memories in chronological order.</span></div><div class="help-row"><strong>Start again</strong><span>Reset view restores all dates and keeps your filters. Press Home when the chart is focused for the same action.</span></div>` : `<p>A fan-made atlas of the stories behind Assassin’s Creed. The archive brings together the characters, artifacts, and turning points in your growing timeline dataset.</p><p>Currently exploring <strong>${state.events.length} memories</strong> across <strong>${new Set(state.events.filter((event) => event.game !== 'Unassigned game').map((event) => event.game)).size} named games</strong>. This is a work in progress, not a complete record of every game or event. Sources and dates are reproduced from the supplied CSV; spoilers are part of the journey.</p><h3>All of history. One view.</h3><p>The adaptive scale compresses data-free gaps longer than 2,000 years. The striped break marks where time is compressed, so human history stays readable beside the Isu era. Switch to Linear for a uniformly spaced year scale. Era tabs are navigation ranges, not claims of formal historical boundaries.</p><h3>An archive that grows with you.</h3><p>New rows in <a href="./${escape(DATASET_PATH)}" download>the source CSV</a> appear automatically on reload. Filters are generated from the data. “c.” marks an approximate date; missing values are labeled explicitly.</p><p>Assassin’s Creed and its characters belong to Ubisoft. This is an independent fan project with no official affiliation. The Florence artwork is an original AI-generated illustration; it is decorative, not a historical source.</p>`}</div>`;
   $('#info-dialog').showModal();
@@ -320,8 +348,8 @@ function setupInteractions() {
     if (!target) return;
     if (target.dataset.era) selectEra(target.dataset.era);
     if (target.dataset.eraCard) { resetFilters(); selectEra(target.dataset.eraCard); $('#explorer').scrollIntoView({ behavior: 'smooth' }); }
-    if (target.dataset.view) { state.view = target.dataset.view; render(); }
-    if (target.dataset.nav) { state.view = target.dataset.nav === 'archive' ? 'list' : 'timeline'; render(); }
+    if (target.dataset.view) { cancelChartGestures(); state.view = target.dataset.view; render(); }
+    if (target.dataset.nav) { cancelChartGestures(); state.view = target.dataset.nav === 'archive' ? 'list' : 'timeline'; render(); }
     if (target.dataset.group) openGroup(target.dataset.group);
     if (target.dataset.event) openMemory(target.dataset.event);
     if (target.dataset.close) $(`#${target.dataset.close}-dialog`).close();
@@ -336,19 +364,21 @@ function setupInteractions() {
     const action = target.dataset.action;
     if (action === 'help' || action === 'about') showInfo(action);
     if (action === 'reset-all') resetAll();
+    if (action === 'fit-matches') fitMatchingMemories();
     if (action === 'surprise' && state.filtered.length) openMemory(state.filtered[Math.floor(Math.random() * state.filtered.length)].id);
     if (action === 'zoom-cluster') { $('#memory-dialog').close(); focusYears(clusterEvents[0].year, clusterEvents.at(-1).year, 0.2); state.era = 'all'; render(); }
     if (action === 'retry') load();
   });
-  $('#search').addEventListener('input', (event) => { state.query = event.target.value; render(); });
+  $('#search').addEventListener('input', (event) => { cancelChartGestures(); state.query = event.target.value; render(); });
   $('#clear-filters').addEventListener('click', () => { resetFilters(); render(); });
-  $('#reset-view').addEventListener('click', () => { state.viewport = [0, 1]; state.era = 'all'; render(); });
+  $('#reset-view').addEventListener('click', () => navigateViewport([0, 1]));
   $('#zoom-in').addEventListener('click', () => zoom(0.65));
   $('#zoom-out').addEventListener('click', () => zoom(1 / 0.65));
   $('#pan-left').addEventListener('click', () => pan(-1));
   $('#pan-right').addEventListener('click', () => pan(1));
   $('#scale-mode').addEventListener('change', (event) => {
     if (!state.scale) return;
+    cancelChartGestures();
     const fullView = state.viewport[1] - state.viewport[0] > 0.9999;
     const years = state.viewport.map((unit) => state.scale.fromUnit(unit));
     state.mode = event.target.value; state.scale = createTimeScale(state.events, state.mode);
@@ -381,6 +411,29 @@ function setupInteractions() {
 
 function setupChartGestures() {
   const viewport = $('#timeline-viewport');
+  const overview = $('#overview');
+  let wheelFrame = 0, pendingWheel = null, drag = null, overviewDrag = null;
+  const canNavigate = () => state.scale && !$('#timeline-view').hidden && !document.querySelector('dialog[open]');
+
+  function stopDrag() {
+    const current = drag;
+    drag = null;
+    viewport.classList.remove('dragging');
+    if (current && viewport.hasPointerCapture(current.pointerId)) viewport.releasePointerCapture(current.pointerId);
+  }
+  function stopOverviewDrag() {
+    const current = overviewDrag;
+    overviewDrag = null;
+    if (current && overview.hasPointerCapture(current.pointerId)) overview.releasePointerCapture(current.pointerId);
+  }
+  cancelChartGestures = () => {
+    cancelAnimationFrame(wheelFrame);
+    wheelFrame = 0;
+    pendingWheel = null;
+    stopDrag();
+    stopOverviewDrag();
+  };
+
   viewport.addEventListener('keydown', (event) => {
     if (event.key === '+' || event.key === '=') { event.preventDefault(); zoom(0.65); }
     if (event.key === '-') { event.preventDefault(); zoom(1 / 0.65); }
@@ -388,48 +441,77 @@ function setupChartGestures() {
     if (event.key === 'ArrowRight') { event.preventDefault(); pan(1); }
     if (event.key === 'Home') { event.preventDefault(); navigateViewport([0, 1]); }
   });
-  let wheelFrame = 0;
   viewport.addEventListener('wheel', (event) => {
-    if (state.viewport[1] - state.viewport[0] > 0.9999 && event.deltaY > 0 && !event.ctrlKey) return;
+    if (!canNavigate()) return;
+    const rect = viewport.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const pixels = (value, extent) => Number.isFinite(value)
+      ? Math.max(-10000, Math.min(10000, value * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? extent : 1))) : 0;
+    const dx = pixels(event.deltaX, rect.width), dy = pixels(event.deltaY, rect.height);
+    if (!dx && !dy) return;
+    if (!pendingWheel && state.viewport[1] - state.viewport[0] > 0.9999 && dy > 0 && Math.abs(dy) >= Math.abs(dx) && !event.ctrlKey) return;
     event.preventDefault();
+    if (drag || overviewDrag) return;
+    // Accumulate a frame's input, including reversals, without a momentum backlog.
+    pendingWheel ??= { dx: 0, dy: 0, anchor: 0.5, pinch: false };
+    pendingWheel.dx += dx;
+    pendingWheel.dy += dy;
+    pendingWheel.anchor = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    pendingWheel.pinch = event.ctrlKey;
     if (wheelFrame) return;
-    const delta = event.deltaY, horizontal = event.deltaX, rect = viewport.getBoundingClientRect(), anchor = (event.clientX - rect.left) / rect.width;
     wheelFrame = requestAnimationFrame(() => {
-      if (Math.abs(horizontal) > Math.abs(delta)) navigateViewport(panViewport(state.viewport, horizontal / rect.width * (state.viewport[1] - state.viewport[0])));
-      else zoom(Math.exp(Math.max(-180, Math.min(180, delta)) * 0.0025), anchor);
+      const input = pendingWheel;
+      pendingWheel = null;
       wheelFrame = 0;
+      if (!input || !canNavigate()) return;
+      const width = viewport.clientWidth;
+      if (width <= 0) return;
+      if (Math.abs(input.dx) > Math.abs(input.dy) && !input.pinch) {
+        const shift = Math.max(-0.18, Math.min(0.18, input.dx / width)) * (state.viewport[1] - state.viewport[0]);
+        navigateViewport(panViewport(state.viewport, shift), true);
+      } else {
+        const delta = Math.max(-100, Math.min(100, input.dy));
+        navigateViewport(zoomViewport(state.viewport, Math.exp(delta * 0.0018), input.anchor), true);
+      }
     });
   }, { passive: false });
-  let drag = null;
   viewport.addEventListener('pointerdown', (event) => {
-    if (event.button !== 0 || event.target.closest('button')) return;
-    drag = { x: event.clientX, viewport: [...state.viewport], width: viewport.clientWidth };
+    if (!canNavigate() || !event.isPrimary || event.button !== 0 || event.target.closest('button') || viewport.clientWidth <= 0) return;
+    cancelChartGestures();
+    drag = { pointerId: event.pointerId, x: event.clientX, viewport: [...state.viewport], width: viewport.clientWidth };
     viewport.setPointerCapture(event.pointerId); viewport.classList.add('dragging');
   });
   viewport.addEventListener('pointermove', (event) => {
-    if (!drag) return;
-    navigateViewport(panViewport(drag.viewport, -(event.clientX - drag.x) / drag.width * (drag.viewport[1] - drag.viewport[0])));
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    navigateViewport(panViewport(drag.viewport, -(event.clientX - drag.x) / drag.width * (drag.viewport[1] - drag.viewport[0])), true);
   });
-  const stopDrag = () => { drag = null; viewport.classList.remove('dragging'); };
-  viewport.addEventListener('pointerup', stopDrag);
-  viewport.addEventListener('pointercancel', stopDrag);
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    viewport.addEventListener(type, (event) => { if (event.pointerId === drag?.pointerId) stopDrag(); });
+  }
   const start = $('#overview-start'), end = $('#overview-end');
   start.addEventListener('input', () => navigateViewport(clampViewport(Math.min(Number(start.value) / 1000, state.viewport[1] - 0.001), state.viewport[1])));
   end.addEventListener('input', () => navigateViewport(clampViewport(state.viewport[0], Math.max(Number(end.value) / 1000, state.viewport[0] + 0.001))));
-  const overview = $('#overview');
-  let overviewDrag = null;
   overview.addEventListener('pointerdown', (event) => {
-    if (event.target.matches('input') || event.button !== 0) return;
+    if (!canNavigate() || !event.isPrimary || event.button !== 0) return;
+    cancelChartGestures();
+    if (event.target.matches('input')) return;
     const rect = overview.getBoundingClientRect(), unit = (event.clientX - rect.left) / rect.width, span = state.viewport[1] - state.viewport[0];
+    if (rect.width <= 0) return;
     if (unit < state.viewport[0] || unit > state.viewport[1]) navigateViewport(clampViewport(unit - span / 2, unit + span / 2));
-    overviewDrag = { x: event.clientX, viewport: [...state.viewport], width: rect.width };
+    overviewDrag = { pointerId: event.pointerId, x: event.clientX, viewport: [...state.viewport], width: rect.width };
     overview.setPointerCapture(event.pointerId);
   });
-  overview.addEventListener('pointermove', (event) => { if (overviewDrag) navigateViewport(panViewport(overviewDrag.viewport, (event.clientX - overviewDrag.x) / overviewDrag.width)); });
-  overview.addEventListener('pointerup', () => { overviewDrag = null; });
-  overview.addEventListener('pointercancel', () => { overviewDrag = null; });
+  overview.addEventListener('pointermove', (event) => {
+    if (overviewDrag && event.pointerId === overviewDrag.pointerId) navigateViewport(panViewport(overviewDrag.viewport, (event.clientX - overviewDrag.x) / overviewDrag.width), true);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    overview.addEventListener(type, (event) => { if (event.pointerId === overviewDrag?.pointerId) stopOverviewDrag(); });
+  }
+  window.addEventListener('blur', cancelChartGestures);
+  window.addEventListener('resize', cancelChartGestures);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelChartGestures(); });
   let resizeFrame = 0;
-  new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => { if (state.scale && state.view === 'timeline' && state.visible.length) renderTimeline(); }); }).observe(viewport);
+  new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame = requestAnimationFrame(() => { if (state.scale && !$('#timeline-view').hidden) renderTimeline(); }); }).observe(viewport);
 }
 
 async function load() {

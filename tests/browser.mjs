@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { DATASET_PATH } from '../src/data.js';
+import { checkFastNavigation } from './navigation-checks.mjs';
 
 // Optional browser verification: use an installed Playwright, or point to an existing one.
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -40,6 +41,20 @@ try {
   assert.match(await page.locator('#visible-status').innerText(), /96 of 96/);
   await page.screenshot({ path: 'output/desktop.png', fullPage: true });
   checks.push('all 96 V3 source records load; desktop screenshot');
+
+  await page.locator('#zoom-in').evaluate((button) => {
+    for (let index = 0; index < 30; index++) button.click();
+  });
+  assert.equal(await page.locator('#timeline-view').isVisible(), true, 'Rapid zooming into a gap must leave the timeline and its controls usable');
+  assert.equal(await page.locator('#empty-state').isVisible(), false);
+  assert.equal(await page.locator('#zoom-out').isEnabled(), true);
+  await page.locator('#zoom-out').evaluate((button) => {
+    for (let index = 0; index < 30; index++) button.click();
+  });
+  assert.match(await page.locator('#visible-status').innerText(), /96 of 96/);
+  checks.push('rapid zoom through empty periods keeps the timeline mounted and recovers without resetting filters');
+  await checkFastNavigation(page);
+  checks.push('desktop rapid wheel bursts in both scales, input reversal, gesture cancellation, and recovery preserving filters');
 
   await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
   assert.equal(await page.locator('.list-memory').count(), 96);
@@ -214,6 +229,8 @@ try {
   await mobile.evaluate(() => document.fonts.ready);
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await mobile.screenshot({ path: 'output/mobile.png', fullPage: true });
+  await checkFastNavigation(mobile, { mobile: true });
+  checks.push('mobile rapid navigation and empty-period recovery');
   await mobile.locator('[data-filter="characters"] summary').click();
   const filterBox = await mobile.locator('[data-filter="characters"] .filter-panel').boundingBox();
   assert.ok(filterBox.x >= 0 && filterBox.x + filterBox.width <= 390);

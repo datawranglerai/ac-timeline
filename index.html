@@ -71,13 +71,14 @@
               <div class="timeline-viewport" id="timeline-viewport" tabindex="0" role="region" aria-label="Interactive timeline. Use plus and minus to zoom, arrow keys to pan, and Home to reset.">
                 <div class="time-axis" id="time-axis" aria-hidden="true"></div>
                 <div class="plot-area" id="plot-area"></div>
+                <div class="timeline-gap" id="timeline-gap" hidden><p>No memories in this period.</p><span>Keep panning or zoom out to explore.</span><button class="secondary-button" data-action="fit-matches">Show matching memories</button></div>
               </div>
             </div>
             <div class="chart-footer"><p><span data-icon="hand"></span> Drag to travel <span class="footer-separator">·</span> Scroll to zoom <span class="footer-separator">·</span> Select a memory to explore</p><div class="zoom-controls"><button id="pan-left" class="icon-button" aria-label="Pan earlier"><span data-icon="left"></span></button><button id="zoom-out" class="icon-button" aria-label="Zoom out"><span data-icon="minus"></span></button><span id="zoom-level">1×</span><button id="zoom-in" class="icon-button" aria-label="Zoom in"><span data-icon="plus"></span></button><button id="pan-right" class="icon-button" aria-label="Pan later"><span data-icon="right"></span></button></div></div>
             <div class="overview-section"><span class="overview-label">ALL OF HISTORY</span><div class="overview" id="overview" aria-label="Timeline overview"><svg id="overview-marks" aria-hidden="true" viewBox="0 0 1000 36" preserveAspectRatio="none"></svg><div class="overview-selection" id="overview-selection"><span></span><span></span></div><input id="overview-start" type="range" min="0" max="999" value="0" aria-label="Visible timeline start"><input id="overview-end" type="range" min="1" max="1000" value="1000" aria-label="Visible timeline end"></div><div class="overview-dates"><span id="overview-first"></span><span class="scale-explanation"><span class="break-symbol" aria-hidden="true">//</span> Long gaps in history are compressed</span><span id="overview-last"></span></div></div>
           </div>
           <div id="list-view" class="list-view" hidden></div>
-          <div id="empty-state" class="empty-state" hidden><span data-icon="search"></span><h3>No memories found in this view.</h3><p>Try another search, widen the timeline, or clear your filters.</p><button class="secondary-button" data-action="reset-all">Show all memories</button></div>
+          <div id="empty-state" class="empty-state" hidden><span data-icon="search"></span><h3>No memories match your filters.</h3><p>Try another search or clear your filters.</p><button class="secondary-button" data-action="reset-all">Show all memories</button></div>
         </div>
         <div class="timeline-note"><span>EVERY MEMORY IS PART OF SOMETHING GREATER.</span><span><i class="approx-dot"></i> c. indicates an approximate date <span class="note-separator">/</span> Dates follow the source dataset</span></div>
       </section>

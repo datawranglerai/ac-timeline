@@ -21,6 +21,7 @@ Open **http://127.0.0.1:5173**. Reload after editing the code or CSV. To use ano
 - Select a memory for its description, date, character, game, location, recorded start/end dates, and source. Numbered groups open all their memories and offer a closer view.
 - Switch to the chronological list for an alternative to the chart.
 - **Reset view** restores the full date range and retains filters. **Clear filters** retains the date range.
+- Empty periods keep the chart, zoom/pan controls, and overview available. **Show matching memories** returns to the records matching your current filters. Fast wheel input is combined and bounded per frame; changing the view, filters, or scale cancels pending gestures.
 
 The **Adaptive** scale gives long, unrecorded gaps a smaller visual footprint. Each gap over 2,000 years occupies the width of 240 ordinary years and is shown with a striped break. It is deliberately not a uniform time axis. **Linear** uses uniform spacing. BCE and CE are adjacent without a historical year zero.
 
@@ -51,7 +52,7 @@ Deploy the contents of `dist/` to any static host. The build includes the author
 
 Unit tests exercise CSV edge cases, source records, filtering, chronological boundaries, scale inversion, compressed gaps, and viewport bounds. The check command validates JavaScript syntax, local asset references, and HTML IDs. This project uses JavaScript rather than TypeScript and has no runtime dependencies.
 
-An optional Playwright suite checks desktop/mobile layouts, filters, search, zoom, pan, detail dialogs, data failures, and future CSV additions. If Playwright and its Chromium browser are already installed:
+An optional Playwright suite checks desktop/mobile layouts, filters, search, zoom, pan, detail dialogs, data failures, and future CSV additions. It also stress-tests thousands of wheel events in adaptive and linear scales, empty-period recovery, input reversals, and interrupted navigation. If Playwright and its Chromium browser are already installed:
 
 ```sh
 # Keep the development server running in another terminal.

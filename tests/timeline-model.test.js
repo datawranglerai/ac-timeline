@@ -62,3 +62,24 @@ test("zoom keeps its anchor fixed and pan preserves span at boundaries", () => {
   close(panned[0], 0.7);
   close(panned[1], 1);
 });
+
+test("invalid zoom anchors fall back to the centre without resetting the view", () => {
+  for (const anchor of [NaN, Infinity, -Infinity, undefined]) {
+    const zoomed = zoomViewport([0.2, 0.8], 0.5, anchor);
+    close(zoomed[0], 0.35);
+    close(zoomed[1], 0.65);
+  }
+});
+
+test("thousands of alternating and extreme gestures keep a finite bounded viewport", () => {
+  let viewport = [0, 1];
+  for (let index = 0; index < 10000; index++) {
+    viewport = zoomViewport(viewport, index % 3 ? 0.35 : 10, (index % 11) / 10);
+    viewport = panViewport(viewport, ((index % 19) - 9) * (viewport[1] - viewport[0]));
+    const [start, end] = viewport;
+    assert.ok(Number.isFinite(start) && Number.isFinite(end));
+    assert.ok(start >= 0 && end <= 1);
+    assert.ok(end - start >= 0.001 - 1e-12 && end > start);
+  }
+  assert.deepEqual(zoomViewport(viewport, 1e9), [0, 1]);
+});

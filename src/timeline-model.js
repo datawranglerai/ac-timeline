@@ -105,7 +105,7 @@ export function clampViewport(start, end) {
 export function zoomViewport(viewport, factor, anchor = 0.5) {
   const [start, end] = clampViewport(...viewport);
   const safeFactor = Number.isFinite(Number(factor)) && Number(factor) > 0 ? Number(factor) : 1;
-  const safeAnchor = Math.max(0, Math.min(1, Number(anchor)));
+  const safeAnchor = Number.isFinite(Number(anchor)) ? Math.max(0, Math.min(1, Number(anchor))) : 0.5;
   const span = end - start;
   const nextSpan = Math.max(MIN_VIEWPORT_SPAN, Math.min(1, span * safeFactor));
   const fixedPoint = start + span * safeAnchor;
