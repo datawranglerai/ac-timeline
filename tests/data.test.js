@@ -33,13 +33,13 @@ test("loadEvents validates headers and skips invalid dates", () => {
   });
 });
 
-test("V2 loads all 87 records and preserves dates, locations, and the missing-era record", async () => {
+test("V3 loads all 96 records including Shadows and preserves source metadata", async () => {
   const csv = await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), "utf8");
   const { events, warnings } = loadEvents(csv);
-  assert.equal(events.length, 87);
+  assert.equal(events.length, 96);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /CE was inferred/);
-  assert.equal(new Set(events.map(({ game }) => game)).size, 17);
+  assert.equal(new Set(events.map(({ game }) => game)).size, 18);
   assert.equal(Math.min(...events.map(({ year }) => year)), -77000);
   assert.equal(Math.max(...events.map(({ year }) => year)), 2030);
   const staff = events.find(({ title }) => title === "Manufacture of Staff of Hermes Trismegistus");
@@ -61,6 +61,16 @@ test("V2 loads all 87 records and preserves dates, locations, and the missing-er
   assert.equal(induction.end, "1868-01-01");
   assert.equal(formatSourceDate(staff.start), "1 Jan 75,100 BCE");
   assert.equal(formatSourceDate(twins.end), "9 Nov 1,847 CE");
+  const shadows = filterEvents(events, { games: ["Assassin's Creed Shadows"] });
+  assert.equal(shadows.length, 9);
+  assert.ok(shadows.every(({ year, era, location, source }) => year >= 1564 && year <= 1582 && era === "CE" && location && source));
+  assert.equal(shadows.filter(({ approx }) => approx).length, 6);
+  assert.equal(filterEvents(shadows, { categories: ["Artefacts"] }).length, 3);
+  const naoe = shadows.find(({ title }) => title === "Fujibayashi Naoe is born");
+  assert.equal(naoe.year, 1564);
+  assert.equal(naoe.approx, true);
+  assert.equal(naoe.location, "Iga Province, Japan");
+  assert.match(naoe.description, /plotting placeholder/);
 });
 
 test("missing eras are inferred only from a matching signed year", () => {

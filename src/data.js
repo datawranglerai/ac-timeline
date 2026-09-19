@@ -1,4 +1,4 @@
-export const DATASET_PATH = "data/Assassin's Creed Timeline - Data V2.csv";
+export const DATASET_PATH = "data/Assassin's Creed Timeline - Data V3.csv";
 
 const REQUIRED_HEADERS = ["Year", "Era", "Title"];
 

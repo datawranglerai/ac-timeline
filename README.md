@@ -1,6 +1,6 @@
 # The Animus Archive
 
-A single-page Assassin’s Creed timeline built around `data/Assassin's Creed Timeline - Data V2.csv`. A cinematic introduction leads into an interactive historical atlas, with memory details and a chronological archive.
+A single-page Assassin’s Creed timeline built around `data/Assassin's Creed Timeline - Data V3.csv`. A cinematic introduction leads into an interactive historical atlas, with memory details and a chronological archive.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ The **Adaptive** scale gives long, unrecorded gaps a smaller visual footprint. E
 
 ## Extend the dataset
 
-Append rows to `data/Assassin's Creed Timeline - Data V2.csv`, retaining its header. The shared `DATASET_PATH` in `src/data.js` controls the live app, download link, build, and dataset tests.
+Append rows to `data/Assassin's Creed Timeline - Data V3.csv`, retaining its header. The shared `DATASET_PATH` in `src/data.js` controls the live app, download link, build, and dataset tests.
 
 ```csv
 Year,Approx,Era,Real Year,Start,End,Category,Character,Game,Location,Source,Title,Image,Description
@@ -36,7 +36,7 @@ Year,Approx,Era,Real Year,Start,End,Category,Character,Game,Location,Source,Titl
 
 Filters, counts, bounds, and compressed gaps update automatically on reload. Optional blank values receive explicit fallbacks. Invalid dates are skipped with a visible warning. Sources are attribution text; URLs are not invented from source labels. `Image` can contain a relative path or an HTTP(S) URL. Add local assets under `images/` or `assets/` so the build includes them.
 
-V2 contains **87 records** across **16 named titles** (including a Watch Dogs entry), with two records lacking a game. It spans **77,000 BCE–2030 CE**. The Daniel Cross record at 2000 CE has no title and is shown as “Untitled memory.” Eivor’s burial record has a blank Era; the matching signed year supplies 920 CE. The Frye induction record remains plotted at its explicit `Year` of 1868, while its recorded 1860–1868 dates are preserved in the details. The timeline preserves the supplied chronology rather than claiming complete coverage or verifying the underlying lore.
+V3 contains **96 records** across **17 named titles** (including a Watch Dogs entry), with two records lacking a game. The nine Shadows memories cover 1564–1582 CE and include Naoe, Yasuke, and the new Artefacts category. It spans **77,000 BCE–2030 CE**. The Daniel Cross record at 2000 CE has no title and is shown as “Untitled memory.” Eivor’s burial record has a blank Era; the matching signed year supplies 920 CE. The Frye induction record remains plotted at its explicit `Year` of 1868, while its recorded 1860–1868 dates are preserved in the details. The timeline preserves the supplied chronology rather than claiming complete coverage or verifying the underlying lore.
 
 ## Build and verify
 

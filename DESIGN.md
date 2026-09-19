@@ -1,7 +1,7 @@
 # Design
 
 ## Source of truth
-Status: Active. Date: 2026-09-18. Surface: single-page Animus timeline and memory archive. Current data: `data/Assassin's Creed Timeline - Data V2.csv` (87 records). Evidence: the implemented page, original HTML/AmCharts/D3 experiments, local artwork, and desktop/mobile browser baselines.
+Status: Active. Date: 2026-09-18. Surface: single-page Animus timeline and memory archive. Current data: `data/Assassin's Creed Timeline - Data V3.csv` (96 records, including nine from Assassin’s Creed Shadows). Evidence: the implemented page, original HTML/AmCharts/D3 experiments, local artwork, and desktop/mobile browser baselines.
 
 ## Brand
 The Animus Archive: a cinematic, considered historical field guide. Ink, antique gold, editorial serif headlines, restrained technical annotations. Trust comes from showing source labels, approximate dates, dataset limits, and explicit time compression. Avoid neon dashboards, excessive effects, and invented lore.
@@ -37,7 +37,7 @@ Initial loading and fetch/parse errors are explicit with retry. No-match state o
 Inviting, succinct, lore-aware. Use “memories” for records, while explaining the dataset plainly. “All eras”, “Explore this era”, and “Reset view” are direct actions. Display BCE/CE explicitly and c. for approximate years. No false real-time connection or invented system status.
 
 ## Implementation constraints
-Dependency-free browser ES modules, HTML, CSS, and SVG; Node built-ins for local development/build/testing. This matches the existing static repository and permits static hosting without a chart license or CDN runtime. Source CSV remains authoritative; a shared dataset path keeps runtime, downloads, build, and tests aligned. Points use Year/Era; a missing Era may be recovered from a matching signed Real Year with visible disclosure. V2 Location and recorded Start/End fields remain available in details and search without changing the point-based chart. Test CSV parsing, date conversion, filtering, scale invertibility, zoom bounds, and real-data loading. Verify browser interactions at desktop/mobile sizes, keyboard access, and console errors.
+Dependency-free browser ES modules, HTML, CSS, and SVG; Node built-ins for local development/build/testing. This matches the existing static repository and permits static hosting without a chart license or CDN runtime. Source CSV remains authoritative; a shared dataset path keeps runtime, downloads, build, and tests aligned. Points use Year/Era; a missing Era may be recovered from a matching signed Real Year with visible disclosure. Location and recorded Start/End fields remain available in details and search without changing the point-based chart. Test CSV parsing, date conversion, filtering, scale invertibility, zoom bounds, and real-data loading. Verify browser interactions at desktop/mobile sizes, keyboard access, and console errors.
 
 ## Open questions
 - [ ] Dataset owner: supply a title for the blank Daniel Cross record at 2000 CE. Use a transparent untitled fallback.

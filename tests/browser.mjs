@@ -33,16 +33,16 @@ try {
   await page.goto(base);
   await page.waitForSelector('.memory-marker');
   await page.evaluate(() => document.fonts.ready);
-  assert.equal(await page.locator('#memory-total').innerText(), '87');
-  assert.equal(await page.locator('#game-total').innerText(), '16');
+  assert.equal(await page.locator('#memory-total').innerText(), '96');
+  assert.equal(await page.locator('#game-total').innerText(), '17');
   assert.equal(await page.locator('#year-count').innerText(), '79,000+');
   assert.match(await page.locator('[data-era-card="isu"] small').innerText(), /77,000 BCE/);
-  assert.match(await page.locator('#visible-status').innerText(), /87 of 87/);
+  assert.match(await page.locator('#visible-status').innerText(), /96 of 96/);
   await page.screenshot({ path: 'output/desktop.png', fullPage: true });
-  checks.push('all 87 V2 source records load; desktop screenshot');
+  checks.push('all 96 V3 source records load; desktop screenshot');
 
   await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
-  assert.equal(await page.locator('.list-memory').count(), 87);
+  assert.equal(await page.locator('.list-memory').count(), 96);
   await page.locator('.list-memory').first().click();
   assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
   assert.equal(await page.locator('#memory-title').innerText(), 'Creation of the Pieces of Eden');
@@ -66,11 +66,36 @@ try {
   await page.locator('#clear-filters').click();
   checks.push('accent-insensitive search, dynamic games, and combined character filters');
 
+  await page.locator('[data-filter="games"] summary').click();
+  await page.locator(`input[name="games"][value="Assassin's Creed Shadows"]`).check();
+  assert.equal(await page.locator('.list-memory').count(), 9);
+  await page.locator('.list-memory').filter({ hasText: 'Fujibayashi Naoe is born' }).click();
+  assert.match(await page.locator('.memory-year').innerText(), /c\. 1,564 CE/);
+  assert.match(await page.locator('.memory-meta').innerText(), /Iga Province, Japan/);
+  assert.match(await page.locator('.memory-description').innerText(), /plotting placeholder/);
+  await page.keyboard.press('Escape');
+  await page.locator('[data-filter="categories"] summary').click();
+  await page.locator('input[name="categories"][value="Artefacts"]').check();
+  assert.equal(await page.locator('.list-memory').count(), 3);
+  await page.getByRole('button', { name: 'Timeline view', exact: true }).click();
+  await page.locator('[data-era="renaissance"]').click();
+  assert.match(await page.locator('#visible-status').innerText(), /3 of 96/);
+  await page.locator('.memory-marker.cluster').click();
+  await assertMemoryContext(page);
+  await page.locator('.cluster-memory').filter({ hasText: 'Naoe receives the Hidden Blade' }).click();
+  assert.match(await page.locator('.memory-tags').innerText(), /Artefacts/);
+  assert.match(await page.locator('.memory-meta').innerText(), /Assassin's Creed Shadows/);
+  await page.keyboard.press('Escape');
+  await page.locator('#clear-filters').click();
+  await page.locator('#reset-view').click();
+  await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
+  checks.push('all nine Shadows memories, approximate Naoe date, Artefacts filter, and timeline detail spotlight');
+
   await page.locator('#search').fill('no-memory-matches-xyz');
   assert.equal(await page.locator('#empty-state').isVisible(), true);
   assert.equal(await page.locator('[data-action="surprise"]').isDisabled(), true);
   await page.getByRole('button', { name: 'Show all memories', exact: true }).click();
-  assert.equal(await page.locator('.list-memory').count(), 87);
+  assert.equal(await page.locator('.list-memory').count(), 96);
   await page.locator('#search').fill('Daniel Cross');
   await page.locator('.list-memory').first().click();
   assert.equal(await page.locator('#memory-title').innerText(), 'Untitled memory');
@@ -92,11 +117,11 @@ try {
   assert.match(await page.locator('.data-note').innerText(), /CE was inferred/);
   await page.keyboard.press('Escape');
   await page.locator('#clear-filters').click();
-  checks.push('V2 location search, recorded dates, and explicit recovery of the missing era');
+  checks.push('V3 location search, recorded dates, and explicit recovery of the missing era');
 
   await page.getByRole('button', { name: 'Timeline view', exact: true }).click();
   await page.locator('[data-era="isu"]').click();
-  assert.match(await page.locator('#visible-status').innerText(), /10 of 87/);
+  assert.match(await page.locator('#visible-status').innerText(), /10 of 96/);
   await page.locator('#reset-view').click();
   await page.locator('#zoom-in').click();
   assert.notEqual(await page.locator('#zoom-level').innerText(), '1×');
@@ -108,7 +133,7 @@ try {
   assert.equal(await page.locator('#zoom-level').innerText(), '1×');
   await page.locator('#scale-mode').selectOption('linear');
   assert.equal(await page.locator('.gap-region').count(), 0);
-  assert.match(await page.locator('#visible-status').innerText(), /87 of 87/);
+  assert.match(await page.locator('#visible-status').innerText(), /96 of 96/);
   await page.locator('#scale-mode').selectOption('adaptive');
   assert.equal(await page.locator('.gap-region').count(), 1);
   checks.push('Isu range, zoom, pan, keyboard reset, and both time scales');
@@ -142,7 +167,7 @@ try {
   await page.waitForFunction(() => !document.querySelector('.memory-marker.is-selected'));
   assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
   await page.locator('[data-era-card="renaissance"]').click();
-  assert.match(await page.locator('#visible-status').innerText(), /4 of 87/);
+  assert.match(await page.locator('#visible-status').innerText(), /13 of 96/);
   await page.locator('.memory-marker').first().click();
   const context = await assertMemoryContext(page);
   assert.ok(context.panel.x > context.x, 'A point on the left opens the panel to its right');
@@ -193,6 +218,10 @@ try {
   const filterBox = await mobile.locator('[data-filter="characters"] .filter-panel').boundingBox();
   assert.ok(filterBox.x >= 0 && filterBox.x + filterBox.width <= 390);
   await mobile.keyboard.press('Escape');
+  await mobile.locator('[data-filter="games"] summary').click();
+  await mobile.locator(`input[name="games"][value="Assassin's Creed Shadows"]`).check();
+  assert.match(await mobile.locator('#visible-status').innerText(), /9 of 96/);
+  await mobile.locator('#clear-filters').click();
   const mobileMarker = mobile.locator('.memory-marker:not(.cluster)').first();
   await mobileMarker.evaluate((point) => {
     const y = point.getBoundingClientRect().top + point.clientHeight / 2;
@@ -229,7 +258,7 @@ try {
   await failure.unroute('**/data/**');
   await failure.getByRole('button', { name: 'Try again', exact: true }).click();
   await failure.waitForSelector('.memory-marker');
-  assert.match(await failure.locator('#visible-status').innerText(), /87 of 87/);
+  assert.match(await failure.locator('#visible-status').innerText(), /96 of 96/);
   checks.push('failed CSV loading and successful retry');
 
   const expanded = await browser.newPage();
@@ -237,11 +266,11 @@ try {
   await expanded.route('**/data/**', (route) => route.fulfill({ status: 200, contentType: 'text/csv', body: csv.trimEnd() + '\n2050,FALSE,CE,2050,2050-01-01,2050-01-01,Future lore,New hero,Future AC,Test City,Test source,New chapter,,An added memory.\n' }));
   await expanded.goto(base);
   await expanded.waitForSelector('.memory-marker');
-  assert.equal(await expanded.locator('#memory-total').innerText(), '88');
+  assert.equal(await expanded.locator('#memory-total').innerText(), '97');
   assert.match(await expanded.locator('#overview-last').innerText(), /2,050 CE/);
   await expanded.locator('[data-filter="games"] summary').click();
   await expanded.locator('input[name="games"][value="Future AC"]').check();
-  assert.match(await expanded.locator('#visible-status').innerText(), /1 of 88/);
+  assert.match(await expanded.locator('#visible-status').innerText(), /1 of 97/);
   checks.push('a new CSV game/year appears automatically in counts, bounds, and filters');
 
   assert.deepEqual(errors, []);
