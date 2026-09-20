@@ -63,6 +63,9 @@ test("V3 loads all 96 records including Shadows and preserves source metadata", 
   assert.equal(formatSourceDate(twins.end), "9 Nov 1,847 CE");
   const shadows = filterEvents(events, { games: ["Assassin's Creed Shadows"] });
   assert.equal(shadows.length, 9);
+  assert.equal(filterEvents(events, { characters: ['Fujibayashi Naoe'] }).length, 7);
+  assert.equal(filterEvents(events, { characters: ['Yasuke'] }).length, 6);
+  assert.equal(filterEvents(events, { characters: ['Jacob Frye'] }).length, 3);
   assert.ok(shadows.every(({ year, era, location, source }) => year >= 1564 && year <= 1582 && era === "CE" && location && source));
   assert.equal(shadows.filter(({ approx }) => approx).length, 6);
   assert.equal(filterEvents(shadows, { categories: ["Artefacts"] }).length, 3);

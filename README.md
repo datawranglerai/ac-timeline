@@ -19,11 +19,19 @@ Open **http://127.0.0.1:5173**. Reload after editing the code or CSV. To use ano
 - Jump between eras or adjust either handle in the overview navigator.
 - Combine game, category, and character filters. Search includes titles, descriptions, characters, games, locations, and sources; **/** focuses search.
 - Select a memory for its description, date, character, game, location, recorded start/end dates, and source. Numbered groups open all their memories and offer a closer view.
+- Matched characters appear as portrait markers; shared memories can show a portrait stack. The original symbols remain for characters without artwork.
+- Memory details play the corresponding character GIF on demand, with pause/play and a character selector for shared memories. Reduced motion starts with a static poster.
+- The **Walk in their footsteps** gallery includes all 24 supplied characters. Cards open a character’s timeline, or an artwork preview marked **No memories yet** when their timeline entries have not been added. Individual character filters and follow actions include memories shared with other characters.
+- Character cards show sourced birth/death dates and are ordered by birth, or earliest known presence if birth is undated. **Lifetimes in view** aligns the visible cards on one shared scale, revealing overlaps and gaps as the gallery scrolls. Hover/focus highlights overlapping records; select a lifespan for its sources.
 - Switch to the chronological list for an alternative to the chart.
 - **Reset view** restores the full date range and retains filters. **Clear filters** retains the date range.
 - Empty periods keep the chart, zoom/pan controls, and overview available. **Show matching memories** returns to the records matching your current filters. Fast wheel input is combined and bounded per frame; changing the view, filters, or scale cancels pending gestures.
 
 The **Adaptive** scale gives long, unrecorded gaps a smaller visual footprint. Each gap over 2,000 years occupies the width of 240 ordinary years and is shown with a striped break. It is deliberately not a uniform time axis. **Linear** uses uniform spacing. BCE and CE are adjacent without a historical year zero.
+
+The gallery’s separate lifespan strip uses thin solid lines for dated life and dashed lines for incomplete records or continued consciousness. Unknown endpoints stay open at the last dated evidence; they never become inferred deaths or extend to today. Empty gaps over 2,000 years can be compressed to 120 effective years and are marked with `//`. Physical lifespans themselves are not compressed internally. Approximate dates use `c.`, and Juno’s Isu-calendar birth remains unconverted.
+
+Biography metadata lives in `src/lifespan-data.js`, with source links and notes for every character. It is separate from the event CSV: for example, the Fryes’ speculative 1917 death and Eivor’s speculative 920 death are not treated as confirmed lifespans; Basim’s biography uses the sourced c.844 estimate. These decisions are explained through **About these dates** and the individual source panels. Ubisoft materials and the linked character-reference wikis provide the evidence; unknowns remain unknown.
 
 ## Extend the dataset
 
@@ -66,10 +74,14 @@ To reuse a separate Playwright installation, set `PLAYWRIGHT_MODULE` to its abso
 - `index.html` — page structure and accessible controls.
 - `src/app.js` — rendering, interactions, grouping, details, and navigation.
 - `src/data.js` — CSV ingestion, normalized events, search, and filters.
+- `src/characters.js` — explicit character aliases and portrait, GIF, poster, and full-body media paths.
+- `src/lifespan-data.js` — sourced biography dates, uncertainty, and continuity notes.
+- `src/lifespan-model.js` — chronological ordering, overlap checks, and the shared lifespan scale.
 - `src/timeline-model.js` — time scales and viewport math.
 - `src/styles.css` — responsive design and visual tokens.
 - `DESIGN.md` — maintained product and design decisions.
 - `assets/` — insignia, optimized artwork, and [artwork provenance](assets/README.md).
+- `assets/avatars/` — preserved uploads plus [prepared character artwork](assets/avatars/README.md).
 - `tests/` — unit and optional browser verification.
 
 Earlier AmCharts/D3 experiments remain in their original files. The new app starts at `index.html`.

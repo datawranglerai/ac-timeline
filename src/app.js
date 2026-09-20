@@ -1,5 +1,8 @@
 import { DATASET_PATH, loadEvents, filterEvents, formatYear, formatSourceDate, shortGame } from './data.js';
 import { createTimeScale, clampViewport, zoomViewport, panViewport } from './timeline-model.js';
+import { CHARACTERS, charactersForEvent, charactersForEvents, characterLabelsForEvent } from './characters.js';
+import { LIFESPANS } from './lifespan-data.js';
+import { createLifespanScale, formatLifeYear, lifeDates, lifeSpan, overlaps, sortCharactersByLifespan } from './lifespan-model.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -43,6 +46,16 @@ const lanes = [
 const laneFor = (event) => lanes.find((lane) => lane.categories.includes(event.category)) || lanes[3];
 const state = { events: [], filtered: [], visible: [], query: '', games: [], categories: [], characters: [], view: 'timeline', mode: 'adaptive', viewport: [0, 1], era: 'all', scale: null, groups: new Map(), selectedId: null };
 let cancelChartGestures = () => {};
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let animationsPaused = reducedMotion.matches;
+let memoryMedia = [];
+let selectedMediaId = null;
+const failedPortraits = new Set();
+const failedGifs = new Set();
+let chronologicalCharacters = [];
+let lifespanFrame = 0;
+let lifespanInfoOpener = null;
+let lifespanRenderKey = '';
 const prettyTitle = (event) => event.title.replace(/\[([^\]]+)\]/g, (_, options) => options.split('|')[0]);
 const percent = (value) => `${(value * 100).toFixed(5)}%`;
 const roundedYear = (value) => Math.round(value) || (value < 0 ? -1 : 1);
@@ -57,10 +70,199 @@ function sourceImage(event) {
   return '';
 }
 
+function distinctPortraits(characters) {
+  return characters.filter((character, index) => !failedPortraits.has(character.headshot) && characters.findIndex((other) => other.headshot === character.headshot) === index);
+}
+
+function characterPortraits(characters, className = 'marker-portraits') {
+  return `<span class="${className}" aria-hidden="true">${distinctPortraits(characters).slice(0, 2).map((character) => `<img class="character-portrait" src="${escape(character.headshot)}" alt="" width="32" height="32" decoding="async">`).join('')}</span>`;
+}
+
+function renderCharacterGallery() {
+  const characters = sortCharactersByLifespan(CHARACTERS, LIFESPANS);
+  chronologicalCharacters = characters;
+  lifespanRenderKey = '';
+  $('#character-gallery').innerHTML = characters.map((character, index) => {
+    const count = state.events.filter((event) => charactersForEvent(event).some((person) => person.id === character.id)).length;
+    const name = character.displayName || character.name;
+    const status = count ? `${count} ${count === 1 ? 'MEMORY' : 'MEMORIES'}` : 'NO MEMORIES YET';
+    const dates = lifeDates(LIFESPANS[character.id]);
+    return `<button class="character-card" data-character-journey="${character.id}" aria-label="Explore ${escape(name)}: born ${escape(dates.birth)}, died ${escape(dates.death)}; ${status.toLowerCase()}"><span class="character-card-index">${String(index + 1).padStart(2, '0')}</span><img src="${escape(character.fullbody)}" alt="" class="character-figure" loading="lazy" decoding="async" width="150" height="230"><span class="character-card-copy"><small>${status}</small><strong>${escape(name)}</strong><span class="character-dates" aria-hidden="true"><span><i>b.</i> ${escape(dates.birth)}</span><span><i>d.</i> ${escape(dates.death)}</span></span><span>${count ? 'Follow their story' : 'View character'} ${icon('right')}</span></span></button>`;
+  }).join('');
+  updateGalleryControls();
+}
+
+function updateGalleryControls() {
+  const gallery = $('#character-gallery');
+  $('[data-gallery-direction="-1"]').disabled = gallery.scrollLeft <= 1;
+  $('[data-gallery-direction="1"]').disabled = gallery.scrollLeft + gallery.clientWidth >= gallery.scrollWidth - 1;
+  cancelAnimationFrame(lifespanFrame);
+  lifespanFrame = requestAnimationFrame(renderLifespanComparison);
+}
+
+function lifeSegments(life) {
+  const span = lifeSpan(life);
+  return life.segments || [{ start: span.start, end: span.end, kind: span.kind }];
+}
+
+function lifespanTicks(scale, width) {
+  const ranges = [];
+  let cursor = scale.minYear;
+  for (const gap of scale.breaks) { ranges.push([cursor, gap.from]); cursor = gap.to; }
+  ranges.push([cursor, scale.maxYear]);
+  const ticks = [];
+  for (const [from, to] of ranges) {
+    const pixels = (scale.toUnit(to) - scale.toUnit(from)) * width;
+    const rough = (to - from) / Math.max(1, pixels / 130);
+    const power = 10 ** Math.floor(Math.log10(rough || 1));
+    const step = Math.max(1, ([1, 2, 5, 10].find((unit) => unit * power >= rough) || 10) * power);
+    for (let year = Math.ceil(from / step) * step, count = 0; year <= to && count < 20; year += step, count++) {
+      if (!year) continue;
+      const position = scale.toUnit(year);
+      if (position > 0.015 && position < 0.985) ticks.push({ year, position });
+    }
+  }
+  const spaced = [];
+  for (const tick of ticks.sort((a, b) => a.position - b.position)) {
+    if (!spaced.length || (tick.position - spaced.at(-1).position) * width > 62) spaced.push(tick);
+  }
+  return spaced;
+}
+
+function renderLifespanComparison() {
+  const gallery = $('#character-gallery');
+  const card = gallery.querySelector('.character-card');
+  if (!card || !gallery.clientWidth) return;
+  const step = card.getBoundingClientRect().width + parseFloat(getComputedStyle(gallery).columnGap);
+  const count = Math.min(4, Math.max(2, Math.round(gallery.clientWidth / step)));
+  const first = Math.max(0, Math.min(chronologicalCharacters.length - count, Math.round(gallery.scrollLeft / step)));
+  const visible = chronologicalCharacters.slice(first, first + count);
+  const width = $('#lifespan-axis').clientWidth || 800;
+  const renderKey = `${visible.map((character) => character.id).join(',')}:${width}`;
+  if (lifespanRenderKey === renderKey) return;
+  lifespanRenderKey = renderKey;
+  const focusedId = document.activeElement?.closest('#lifespan-rows .lifespan-row')?.dataset.lifeDetails;
+  const lives = visible.map((character) => LIFESPANS[character.id] || {});
+  // Stored/suspended consciousness can cross a compressed gap; a living span cannot.
+  const occupied = lives.map((life) => ({ ...life, segments: lifeSegments(life).flatMap((segment) => segment.kind === 'continuation'
+    ? [{ start: segment.start, end: segment.start }, { start: segment.end, end: segment.end }]
+    : [segment]) }));
+  const scale = createLifespanScale(occupied);
+  const hasDates = lives.some((life) => Number.isFinite(lifeSpan(life).start) || Number.isFinite(lifeSpan(life).end));
+  const ticks = hasDates ? lifespanTicks(scale, width) : [];
+  $('#lifespan-scope').textContent = `${first + 1}–${first + visible.length} / ${chronologicalCharacters.length}`;
+  $('#lifespan-axis').innerHTML = ticks.map((tick) => `<span style="left:${percent(tick.position)}">${escape(formatLifeYear(tick.year))}</span>`).join('');
+  $('#lifespan-break-note').hidden = !scale.breaks.length;
+  const grid = ticks.map((tick) => `<span class="lifespan-grid" style="left:${percent(tick.position)}"></span>`).join('');
+  const breaks = scale.breaks.map((gap) => `<span class="lifespan-gap" style="left:${percent(gap.start)};width:${percent(gap.end - gap.start)}" title="${Math.round(gap.to - gap.from).toLocaleString('en-GB')} years compressed">//</span>`).join('');
+  $('#lifespan-rows').innerHTML = visible.map((character) => {
+    const life = LIFESPANS[character.id] || {}, span = lifeSpan(life), dates = lifeDates(life);
+    const name = character.displayName || character.name;
+    const segments = lifeSegments(life).filter((segment) => Number.isFinite(segment.start) && Number.isFinite(segment.end));
+    const lines = segments.map((segment) => {
+      const start = scale.toUnit(segment.start), end = scale.toUnit(segment.end);
+      return `<span class="lifespan-segment ${segment.kind === 'life' ? '' : 'is-recorded'}" data-segment="${segment.kind}" style="left:${percent(start)};width:${percent(Math.max(0, end - start))}"></span>`;
+    }).join('');
+    const cap = (year, open, edge = '') => Number.isFinite(year) ? `<span class="lifespan-cap ${open ? 'is-open' : ''} ${edge}" style="left:${percent(scale.toUnit(year))}"></span>` : '';
+    const lastIsContinuation = segments.at(-1)?.kind === 'continuation';
+    const caps = cap(span.start, span.startUnknown || life.birthApprox) + cap(span.end, span.endUnknown || life.deathApprox || lastIsContinuation, span.endUnknown || lastIsContinuation ? 'open-end' : '') + (life.deathYear && life.deathYear !== span.end ? cap(life.deathYear, false) : '');
+    const sightings = (life.sightings || []).map((year) => cap(year, false)).join('');
+    return `<button class="lifespan-row" data-life-details="${character.id}" aria-label="${escape(name)}. Born ${escape(dates.birth)}. Died ${escape(dates.death)}. View date sources." title="${escape(`${name} · ${dates.birth} — ${dates.death}`)}"><span class="lifespan-person">${escape(name)}</span><span class="lifespan-track" aria-hidden="true">${grid}${breaks}${lines}${caps}${sightings}${segments.length ? '' : '<span class="lifespan-undated">Dates unknown</span>'}</span></button>`;
+  }).join('');
+  if (focusedId) $(`#lifespan-rows [data-life-details="${focusedId}"]`)?.focus({ preventScroll: true });
+  const hovered = gallery.querySelector('.character-card:hover');
+  highlightLifespan(focusedId || hovered?.dataset.characterJourney);
+}
+
+function highlightLifespan(id) {
+  for (const row of $$('#lifespan-rows .lifespan-row')) {
+    row.classList.toggle('is-current', row.dataset.lifeDetails === id);
+    row.classList.toggle('is-overlapping', Boolean(id && overlaps(LIFESPANS[id], LIFESPANS[row.dataset.lifeDetails])));
+  }
+  for (const card of $$('#character-gallery .character-card')) card.classList.toggle('is-comparing', Boolean(id && card.dataset.characterJourney === id));
+}
+
+function lifespanSummary(character) {
+  const dates = lifeDates(LIFESPANS[character.id]);
+  return `<dl class="character-life-summary"><div><dt>Born</dt><dd>${escape(dates.birth)}</dd></div><div><dt>Died</dt><dd>${escape(dates.death)}</dd></div></dl><button class="text-button life-source-link" data-life-details="${character.id}">Date notes & sources ${icon('up-right')}</button>`;
+}
+
+function showLifespanInfo(id) {
+  cancelChartGestures();
+  const character = CHARACTERS.find((person) => person.id === id);
+  const dialog = $('#info-dialog');
+  if (!dialog.open) lifespanInfoOpener = document.activeElement;
+  const life = character ? LIFESPANS[character.id] || {} : null;
+  const dates = life ? lifeDates(life) : null;
+  const content = character
+    ? `<h2 id="info-title">${escape(character.displayName || character.name)}</h2><dl class="character-life-summary"><div><dt>Born</dt><dd>${escape(dates.birth)}</dd></div><div><dt>Died</dt><dd>${escape(dates.death)}</dd></div></dl><p>${escape(life.note || 'Biographical dates have not been documented yet.')}</p><h3>Sources</h3><ul class="lifespan-sources">${(life.sources || []).map((source) => `<li><a href="${escape(source.url)}" target="_blank" rel="noopener noreferrer">${escape(source.title)} ↗</a></li>`).join('')}</ul>`
+    : '<h2 id="info-title">Lives, side by side.</h2><p>The cards run from oldest to newest, using birth years or the earliest known presence when a birth cannot be dated. People with the same known date share a chronological position.</p><p>The strip compares the characters currently in view on one shared year scale. Longer lines cover more years; aligned sections show overlap. It updates as you browse the cards.</p><p>Solid lines show dated life. Dashed lines show incomplete records, suspension, or stored consciousness. Open caps mark unknown or approximate boundaries; the end of a record is never treated as a death. “c.” means approximate, and “IE” is the separate Isu calendar.</p><p>Large gaps between physical lives may be compressed and are marked with //. A long physical life, such as Kassandra’s, remains proportional. Hover or focus a character to highlight overlapping records.</p><p>Birth and death metadata are sourced separately from the event CSV. Speculative dates in the CSV are preserved as events but are not promoted to confirmed lifespans. Select any lifespan for its date notes and sources.</p>';
+  $('#info-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">BIOGRAPHICAL DATES</p><button class="close-button" data-close="info" aria-label="Close date information">×</button></div><div class="info-body">${content}</div>`;
+  if (!dialog.open) dialog.showModal();
+  $('#info-title').tabIndex = -1;
+  $('#info-title').focus({ preventScroll: true });
+  dialog.scrollTop = 0;
+}
+
+function followCharacterJourney(id) {
+  const character = CHARACTERS.find((person) => person.id === id);
+  if (!character) return;
+  const memories = state.events.filter((event) => charactersForEvent(event).some((person) => person.id === id));
+  if (!memories.length) { openCharacterProfile(character); return; }
+  resetFilters();
+  state.characters = [charactersForEvent(memories[0]).find((character) => character.id === id).name];
+  state.view = 'timeline';
+  state.era = 'all';
+  focusYears(memories[0].year, memories.at(-1).year, 0.12);
+  render();
+  $('#explorer').scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+  $('#timeline-viewport').focus({ preventScroll: true });
+}
+
+function openCharacterProfile(character) {
+  memoryContextIds = [];
+  state.selectedId = null;
+  const media = prepareMemoryMedia({ character: character.name });
+  const name = character.displayName || character.name;
+  $('#memory-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">THE CHARACTER ARCHIVE</p><button class="close-button" data-close="memory" aria-label="Close character details">×</button></div><div class="memory-body"><p class="eyebrow muted">NO MEMORIES YET</p><h2 id="memory-title">${escape(name)}</h2>${character.displayName ? `<p class="character-profile-name">${escape(character.name)}</p>` : ''}${lifespanSummary(character)}${media || `<div class="character-profile-art"><img src="${escape(character.fullbody)}" alt="${escape(name)}" width="240" height="320"></div>`}<p class="memory-description">${escape(name)} is part of the character archive. Their timeline entries haven’t been added yet.</p><div class="memory-actions"><button class="secondary-button" data-close="memory">Back to characters ${icon('right')}</button></div></div>`;
+  renderMemoryMedia();
+  presentMemory();
+}
+
+function prepareMemoryMedia(event) {
+  memoryMedia = charactersForEvent(event).filter((character) => character.gif).map((character) => ({ ...character, label: character.name }));
+  memoryMedia = memoryMedia.filter((character, index) => {
+    const first = memoryMedia.findIndex((other) => other.gif === character.gif);
+    if (first !== index) return false;
+    character.label = memoryMedia.filter((other) => other.gif === character.gif).map((other) => other.name).join(' & ');
+    return true;
+  });
+  selectedMediaId = memoryMedia[0]?.id || null;
+  return memoryMedia.length ? '<div id="memory-media"></div>' : '';
+}
+
+function renderMemoryMedia() {
+  const container = $('#memory-media');
+  const media = memoryMedia.find((character) => character.id === selectedMediaId);
+  if (!container || !media) return;
+  const focused = container.contains(document.activeElement) ? document.activeElement.dataset : null;
+  const focusedAction = focused?.action, focusedMedia = focused?.memoryMedia;
+  const unavailable = failedGifs.has(media.gif);
+  const paused = animationsPaused || unavailable;
+  const controls = memoryMedia.length > 1 ? `<div class="memory-media-choices" role="group" aria-label="Choose character animation">${memoryMedia.map((character) => `<button data-memory-media="${character.id}" aria-pressed="${character.id === selectedMediaId}">${escape(character.label)}</button>`).join('')}</div>` : '';
+  container.innerHTML = `${controls}<figure class="memory-motion"><div class="memory-visual" style="background-image:url('${escape(media.poster)}')"><img class="memory-gif" src="${escape(paused ? media.poster : media.gif)}" alt="${escape(media.label)}" decoding="async" width="500" height="300"></div><figcaption><span>${escape(media.label)}</span>${unavailable ? '<span>Still preview</span>' : `<button class="motion-toggle" data-action="toggle-animation" aria-label="${paused ? 'Play' : 'Pause'} character animation"><span aria-hidden="true">${paused ? '▶' : 'Ⅱ'}</span> ${paused ? 'Play' : 'Pause'}</button>`}</figcaption></figure>`;
+  if (focusedAction === 'toggle-animation') (container.querySelector('.motion-toggle') || $('#memory-title')).focus({ preventScroll: true });
+  else if (focusedMedia) {
+    container.querySelector(`[data-memory-media="${focusedMedia}"]`)?.focus({ preventScroll: true });
+    const dialog = $('#memory-dialog');
+    dialog.scrollTop += container.getBoundingClientRect().top - dialog.getBoundingClientRect().top - dialog.querySelector('.dialog-top').offsetHeight - 12;
+  }
+}
+
 function setupFilters() {
   $('#filters').innerHTML = [['games', 'game', 'Games'], ['categories', 'category', 'Categories'], ['characters', 'character', 'Characters']].map(([key, field, label]) => {
-    const values = [...new Set(state.events.map((event) => event[field]))].sort((a, b) => a.localeCompare(b));
-    return `<details class="filter" data-filter="${key}"><summary><span id="${key}-label">${label}</span>${icon('down')}</summary><div class="filter-panel"><div class="filter-panel-header"><span>FILTER BY ${label.toUpperCase()}</span><button type="button" data-clear="${key}">Clear</button></div>${values.map((value) => `<label class="filter-option"><input type="checkbox" name="${key}" value="${escape(value)}"><span>${escape(field === 'game' ? shortGame(value) : value)}</span><span class="option-count">${state.events.filter((event) => event[field] === value).length}</span></label>`).join('')}</div></details>`;
+    const values = [...new Set(field === 'character' ? state.events.flatMap(characterLabelsForEvent) : state.events.map((event) => event[field]))].sort((a, b) => a.localeCompare(b));
+    return `<details class="filter" data-filter="${key}"><summary><span id="${key}-label">${label}</span>${icon('down')}</summary><div class="filter-panel"><div class="filter-panel-header"><span>FILTER BY ${label.toUpperCase()}</span><button type="button" data-clear="${key}">Clear</button></div>${values.map((value) => `<label class="filter-option"><input type="checkbox" name="${key}" value="${escape(value)}"><span>${escape(field === 'game' ? shortGame(value) : value)}</span><span class="option-count">${state.events.filter((event) => field === 'character' ? characterLabelsForEvent(event).includes(value) : event[field] === value).length}</span></label>`).join('')}</div></details>`;
   }).join('');
   $('#filters').addEventListener('change', (event) => {
     const input = event.target;
@@ -145,7 +347,7 @@ function getTicks(width) {
 }
 
 function renderTimeline() {
-  const width = $('#timeline-viewport').clientWidth || 800;
+  const width = $('#plot-area').clientWidth || 800;
   const ticks = getTicks(width);
   $('#time-axis').innerHTML = ticks.map((tick) => `<span class="time-tick ${tick.position < 0.06 ? 'edge-first' : tick.position > 0.94 ? 'edge-last' : ''}" style="left:${percent(tick.position)}">${formatYear(tick.year)}</span>`).join('');
   state.groups.clear();
@@ -164,6 +366,10 @@ function renderTimeline() {
       const id = `${lane.id}-${index}`;
       state.groups.set(id, group.events);
       const event = group.events[0], isCluster = group.events.length > 1;
+      const people = charactersForEvents(group.events);
+      const hasPortrait = distinctPortraits(people).length > 0;
+      const closeNeighbour = (index > 0 && group.x - groups[index - 1].x < 52) || (index < groups.length - 1 && groups[index + 1].x - group.x < 52);
+      const offset = hasPortrait && closeNeighbour ? (index % 2 ? 14 : -14) : 0;
       const label = isCluster ? `${group.events.length} connected memories` : prettyTitle(event);
       const alignment = group.x < 54 ? 'align-start' : group.x > width - 54 ? 'align-end' : '';
       const labelWidth = window.innerWidth <= 700 ? 88 : window.innerWidth <= 1200 ? 105 : 126;
@@ -171,7 +377,8 @@ function renderTimeline() {
       const showLabel = labelLeft > lastLabelRight + 10;
       if (showLabel) lastLabelRight = labelLeft + labelWidth;
       const date = isCluster && group.events.at(-1).year !== event.year ? `${formatYear(event.year)} – ${formatYear(group.events.at(-1).year)}` : formatYear(event.year, event.approx);
-      return `<button class="memory-marker ${isCluster ? 'cluster' : ''} ${alignment}" style="left:${percent(group.x / width)}" data-group="${id}" aria-label="${escape(`${date}: ${label}`)}" title="${escape(isCluster ? `${group.events.length} memories. Select to explore or zoom in.` : `${prettyTitle(event)} · ${formatYear(event.year, event.approx)}`)}">${isCluster ? `<span class="cluster-count">${group.events.length}</span>` : ''}${showLabel ? `<span class="memory-label"><small>${escape(isCluster ? `${group.events.length} MEMORIES` : formatYear(event.year, event.approx))}</small><span class="label-title">${escape(isCluster ? prettyTitle(event) : label)}</span></span>` : ''}</button>`;
+      const characterLabel = people.length ? ` · ${people.map((person) => person.name).join(', ')}` : '';
+      return `<button class="memory-marker ${isCluster ? 'cluster' : ''} ${alignment} ${hasPortrait ? 'has-portrait' : ''}" style="left:${percent(group.x / width)};--avatar-offset:${offset}px" data-group="${id}" aria-label="${escape(`${date}: ${label}${characterLabel}`)}" title="${escape((isCluster ? `${group.events.length} memories. Select to explore or zoom in.` : `${prettyTitle(event)} · ${formatYear(event.year, event.approx)}`) + characterLabel)}">${hasPortrait ? characterPortraits(people) : ''}${isCluster ? `<span class="cluster-count">${group.events.length}</span>` : ''}${showLabel ? `<span class="memory-label"><small>${escape(isCluster ? `${group.events.length} MEMORIES` : formatYear(event.year, event.approx))}</small><span class="label-title">${escape(isCluster ? prettyTitle(event) : label)}</span></span>` : ''}</button>`;
     }).join('')}</div>`;
   }).join('');
   if (state.mode === 'adaptive') markup += state.scale.breaks.map((gap) => {
@@ -268,9 +475,15 @@ function syncMemoryContext() {
     state.groups.get(point.dataset.group)?.some((event) => memoryContextIds.includes(event.id))
   );
   if (!marker) return;
-  const rect = marker.getBoundingClientRect();
-  const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+  let rect = marker.getBoundingClientRect();
   const width = document.documentElement.clientWidth, height = window.innerHeight;
+  let y = rect.top + rect.height / 2;
+  if (y < 60 || y > height - 60) {
+    window.scrollBy({ top: y - height * 0.45, behavior: 'instant' });
+    rect = marker.getBoundingClientRect();
+    y = rect.top + rect.height / 2;
+  }
+  const x = rect.left + rect.width / 2;
   if (x < 0 || x > width || y < 0 || y > height) return;
 
   // Keep the actual source point exposed; the native dialog still owns focus.
@@ -300,7 +513,11 @@ function syncMemoryContext() {
 function presentMemory() {
   cancelChartGestures();
   const dialog = $('#memory-dialog');
-  if (!dialog.open) { memoryOpener = document.activeElement; dialog.showModal(); }
+  if (!dialog.open) {
+    memoryOpener = document.activeElement;
+    window.scrollTo({ top: window.scrollY, left: window.scrollX, behavior: 'instant' });
+    dialog.showModal();
+  }
   syncMemoryContext();
   const title = $('#memory-title');
   title.tabIndex = -1;
@@ -315,9 +532,12 @@ function openMemory(id) {
   memoryContextIds = [id];
   const sequence = state.filtered.length ? state.filtered : state.events;
   const index = sequence.findIndex((memory) => memory.id === id);
-  const image = sourceImage(event);
-  $('#memory-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">THE MEMORY ARCHIVE <span aria-hidden="true">/</span> ${String(state.events.indexOf(event) + 1).padStart(3, '0')}</p><button class="close-button" data-close="memory" aria-label="Close memory details">×</button></div><div class="memory-body"><p class="memory-year">${escape(formatYear(event.year, event.approx))}</p><h2 id="memory-title">${escape(prettyTitle(event))}</h2><div class="memory-tags"><span>${escape(event.category)}</span><span>${escape(shortGame(event.game))}</span></div>${image ? `<img class="memory-art" src="${escape(image)}" alt="${escape(prettyTitle(event))}">` : ''}<p class="memory-description">${escape(event.description || 'No description has been added to this memory yet.')}</p><dl class="memory-meta"><dt>Character</dt><dd>${escape(event.character)}</dd><dt>Game</dt><dd>${escape(event.game)}</dd>${event.location ? `<dt>Location</dt><dd>${escape(event.location)}</dd>` : ''}<dt>Source</dt><dd>${escape(event.source || 'Not provided')}</dd><dt>Date</dt><dd>${escape(formatYear(event.year, event.approx))}${event.approx ? ' · Approximate, as recorded in the dataset' : ''}</dd>${event.start ? `<dt>Recorded start</dt><dd>${escape(formatSourceDate(event.start))}</dd>` : ''}${event.end ? `<dt>Recorded end</dt><dd>${escape(formatSourceDate(event.end))}</dd>` : ''}</dl>${event.eraInferred ? `<p class="data-note">The source CSV has no era for this memory. ${escape(event.era)} was inferred from its signed Real Year field.</p>` : ''}${event.untitled ? '<p class="data-note">This entry has no title in the source CSV. Its date, character, and description are preserved.</p>' : ''}${event.title !== prettyTitle(event) ? `<p class="data-note">Original title: ${escape(event.title)}</p>` : ''}<div class="memory-actions"><button class="secondary-button" data-focus-event="${event.id}">${icon('timeline')} Find on timeline</button>${event.character !== 'Unknown character' ? `<button class="secondary-button" data-follow-character="${escape(event.character)}">Follow this character ${icon('right')}</button>` : ''}</div><div class="memory-pager"><button data-event="${sequence[index - 1]?.id || ''}" ${index <= 0 ? 'disabled' : ''}>${icon('left')} Previous memory</button><button data-event="${sequence[index + 1]?.id || ''}" ${index < 0 || index === sequence.length - 1 ? 'disabled' : ''}>Next memory ${icon('right')}</button></div></div>`;
-  const memoryImage = $('#memory-content img');
+  const media = prepareMemoryMedia(event);
+  const image = media ? '' : sourceImage(event);
+  const characterNames = characterLabelsForEvent(event).filter((name) => name !== 'Unknown character');
+  $('#memory-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">THE MEMORY ARCHIVE <span aria-hidden="true">/</span> ${String(state.events.indexOf(event) + 1).padStart(3, '0')}</p><button class="close-button" data-close="memory" aria-label="Close memory details">×</button></div><div class="memory-body"><p class="memory-year">${escape(formatYear(event.year, event.approx))}</p><h2 id="memory-title">${escape(prettyTitle(event))}</h2><div class="memory-tags"><span>${escape(event.category)}</span><span>${escape(shortGame(event.game))}</span></div>${media}${image ? `<img class="memory-art" src="${escape(image)}" alt="${escape(prettyTitle(event))}">` : ''}<p class="memory-description">${escape(event.description || 'No description has been added to this memory yet.')}</p><dl class="memory-meta"><dt>Character</dt><dd>${escape(event.character)}</dd><dt>Game</dt><dd>${escape(event.game)}</dd>${event.location ? `<dt>Location</dt><dd>${escape(event.location)}</dd>` : ''}<dt>Source</dt><dd>${escape(event.source || 'Not provided')}</dd><dt>Date</dt><dd>${escape(formatYear(event.year, event.approx))}${event.approx ? ' · Approximate, as recorded in the dataset' : ''}</dd>${event.start ? `<dt>Recorded start</dt><dd>${escape(formatSourceDate(event.start))}</dd>` : ''}${event.end ? `<dt>Recorded end</dt><dd>${escape(formatSourceDate(event.end))}</dd>` : ''}</dl>${event.eraInferred ? `<p class="data-note">The source CSV has no era for this memory. ${escape(event.era)} was inferred from its signed Real Year field.</p>` : ''}${event.untitled ? '<p class="data-note">This entry has no title in the source CSV. Its date, character, and description are preserved.</p>' : ''}${event.title !== prettyTitle(event) ? `<p class="data-note">Original title: ${escape(event.title)}</p>` : ''}<div class="memory-actions"><button class="secondary-button" data-focus-event="${event.id}">${icon('timeline')} Find on timeline</button>${characterNames.map((name) => `<button class="secondary-button" data-follow-character="${escape(name)}">${characterNames.length === 1 ? 'Follow this character' : `Follow ${escape(name)}`} ${icon('right')}</button>`).join('')}</div><div class="memory-pager"><button data-event="${sequence[index - 1]?.id || ''}" ${index <= 0 ? 'disabled' : ''}>${icon('left')} Previous memory</button><button data-event="${sequence[index + 1]?.id || ''}" ${index < 0 || index === sequence.length - 1 ? 'disabled' : ''}>Next memory ${icon('right')}</button></div></div>`;
+  renderMemoryMedia();
+  const memoryImage = $('#memory-content .memory-art');
   if (memoryImage) memoryImage.addEventListener('error', () => { memoryImage.hidden = true; }, { once: true });
   presentMemory();
 }
@@ -328,9 +548,11 @@ function openGroup(id) {
   if (!events?.length) return;
   if (events.length === 1) return openMemory(events[0].id);
   clusterEvents = events;
+  memoryMedia = [];
+  selectedMediaId = null;
   state.selectedId = null;
   memoryContextIds = events.map((event) => event.id);
-  $('#memory-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">CONNECTED MEMORIES</p><button class="close-button" data-close="memory" aria-label="Close connected memories">×</button></div><div class="memory-body"><p class="memory-year">${escape(formatYear(events[0].year))}${events.at(-1).year !== events[0].year ? ` — ${escape(formatYear(events.at(-1).year))}` : ''}</p><h2 id="memory-title">${events.length} threads of history.</h2><p class="cluster-intro">These memories share a moment in time. Open a story, or zoom in to see how they connect.</p><div class="memory-actions"><button class="secondary-button" data-action="zoom-cluster">Zoom into this period ${icon('plus')}</button></div><div class="cluster-list">${events.map((event) => `<button class="cluster-memory" data-event="${event.id}"><span><small>${escape(formatYear(event.year, event.approx))}</small>${escape(prettyTitle(event))}</span><span aria-hidden="true">↗</span></button>`).join('')}</div></div>`;
+  $('#memory-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">CONNECTED MEMORIES</p><button class="close-button" data-close="memory" aria-label="Close connected memories">×</button></div><div class="memory-body"><p class="memory-year">${escape(formatYear(events[0].year))}${events.at(-1).year !== events[0].year ? ` — ${escape(formatYear(events.at(-1).year))}` : ''}</p><h2 id="memory-title">${events.length} threads of history.</h2><p class="cluster-intro">These memories share a moment in time. Open a story, or zoom in to see how they connect.</p><div class="memory-actions"><button class="secondary-button" data-action="zoom-cluster">Zoom into this period ${icon('plus')}</button></div><div class="cluster-list">${events.map((event) => `<button class="cluster-memory" data-event="${event.id}">${charactersForEvent(event).length ? characterPortraits(charactersForEvent(event), 'cluster-portraits') : ''}<span class="cluster-memory-copy"><small>${escape(formatYear(event.year, event.approx))}</small>${escape(prettyTitle(event))}</span><span aria-hidden="true">↗</span></button>`).join('')}</div></div>`;
   presentMemory();
 }
 
@@ -348,6 +570,11 @@ function setupInteractions() {
     if (!target) return;
     if (target.dataset.era) selectEra(target.dataset.era);
     if (target.dataset.eraCard) { resetFilters(); selectEra(target.dataset.eraCard); $('#explorer').scrollIntoView({ behavior: 'smooth' }); }
+    if (target.dataset.characterJourney) followCharacterJourney(target.dataset.characterJourney);
+    if (target.dataset.lifeDetails) showLifespanInfo(target.dataset.lifeDetails);
+    if (target.hasAttribute('data-life-help')) showLifespanInfo();
+    if (target.dataset.galleryDirection) $('#character-gallery').scrollBy({ left: Number(target.dataset.galleryDirection) * $('#character-gallery').clientWidth * 0.85, behavior: reducedMotion.matches ? 'instant' : 'smooth' });
+    if (target.dataset.memoryMedia) { selectedMediaId = target.dataset.memoryMedia; renderMemoryMedia(); }
     if (target.dataset.view) { cancelChartGestures(); state.view = target.dataset.view; render(); }
     if (target.dataset.nav) { cancelChartGestures(); state.view = target.dataset.nav === 'archive' ? 'list' : 'timeline'; render(); }
     if (target.dataset.group) openGroup(target.dataset.group);
@@ -365,6 +592,7 @@ function setupInteractions() {
     if (action === 'help' || action === 'about') showInfo(action);
     if (action === 'reset-all') resetAll();
     if (action === 'fit-matches') fitMatchingMemories();
+    if (action === 'toggle-animation') { animationsPaused = !animationsPaused; renderMemoryMedia(); }
     if (action === 'surprise' && state.filtered.length) openMemory(state.filtered[Math.floor(Math.random() * state.filtered.length)].id);
     if (action === 'zoom-cluster') { $('#memory-dialog').close(); focusYears(clusterEvents[0].year, clusterEvents.at(-1).year, 0.2); state.era = 'all'; render(); }
     if (action === 'retry') load();
@@ -403,6 +631,46 @@ function setupInteractions() {
     const target = memoryOpener?.isConnected && memoryOpener.getClientRects().length ? memoryOpener : fallback || $('#search');
     target.focus({ preventScroll: true });
     memoryOpener = null;
+    memoryMedia = [];
+    selectedMediaId = null;
+    $('#memory-content').replaceChildren();
+  });
+  reducedMotion.addEventListener('change', (event) => {
+    if (event.matches) animationsPaused = true;
+    renderMemoryMedia();
+  });
+  document.addEventListener('error', (event) => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement)) return;
+    if (image.classList.contains('character-portrait')) {
+      failedPortraits.add(image.getAttribute('src'));
+      const marker = image.closest('.memory-marker');
+      image.remove();
+      if (marker && !marker.querySelector('.character-portrait')) marker.classList.remove('has-portrait');
+      syncMemoryContext();
+    } else if (image.classList.contains('memory-gif')) {
+      const media = memoryMedia.find((character) => character.id === selectedMediaId);
+      const figure = image.closest('figure');
+      if (media && image.getAttribute('src') === media.gif) {
+        failedGifs.add(media.gif);
+        renderMemoryMedia();
+      } else if (figure) figure.hidden = true;
+    }
+  }, true);
+  $('#character-gallery').addEventListener('scroll', updateGalleryControls, { passive: true });
+  new ResizeObserver(updateGalleryControls).observe($('#character-gallery'));
+  for (const [container, selector, key] of [[$('#character-gallery'), '.character-card', 'characterJourney'], [$('#lifespan-rows'), '.lifespan-row', 'lifeDetails']]) {
+    const highlight = (event) => highlightLifespan(event.target.closest(selector)?.dataset[key]);
+    container.addEventListener('pointerover', highlight);
+    container.addEventListener('focusin', highlight);
+    container.addEventListener('pointerleave', () => highlightLifespan(null));
+    container.addEventListener('focusout', () => highlightLifespan(null));
+  }
+  $('#info-dialog').addEventListener('close', () => {
+    if (!lifespanInfoOpener) return;
+    const target = lifespanInfoOpener.isConnected && lifespanInfoOpener.getClientRects().length ? lifespanInfoOpener : $('[data-life-help]');
+    target.focus({ preventScroll: true });
+    lifespanInfoOpener = null;
   });
   window.addEventListener('resize', syncMemoryContext);
   window.addEventListener('scroll', syncMemoryContext, { passive: true });
@@ -443,7 +711,7 @@ function setupChartGestures() {
   });
   viewport.addEventListener('wheel', (event) => {
     if (!canNavigate()) return;
-    const rect = viewport.getBoundingClientRect();
+    const rect = $('#plot-area').getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     const pixels = (value, extent) => Number.isFinite(value)
       ? Math.max(-10000, Math.min(10000, value * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? extent : 1))) : 0;
@@ -464,7 +732,7 @@ function setupChartGestures() {
       pendingWheel = null;
       wheelFrame = 0;
       if (!input || !canNavigate()) return;
-      const width = viewport.clientWidth;
+      const width = $('#plot-area').clientWidth;
       if (width <= 0) return;
       if (Math.abs(input.dx) > Math.abs(input.dy) && !input.pinch) {
         const shift = Math.max(-0.18, Math.min(0.18, input.dx / width)) * (state.viewport[1] - state.viewport[0]);
@@ -478,7 +746,7 @@ function setupChartGestures() {
   viewport.addEventListener('pointerdown', (event) => {
     if (!canNavigate() || !event.isPrimary || event.button !== 0 || event.target.closest('button') || viewport.clientWidth <= 0) return;
     cancelChartGestures();
-    drag = { pointerId: event.pointerId, x: event.clientX, viewport: [...state.viewport], width: viewport.clientWidth };
+    drag = { pointerId: event.pointerId, x: event.clientX, viewport: [...state.viewport], width: $('#plot-area').clientWidth };
     viewport.setPointerCapture(event.pointerId); viewport.classList.add('dragging');
   });
   viewport.addEventListener('pointermove', (event) => {
@@ -530,6 +798,7 @@ async function load() {
     const isuYears = events.filter((event) => event.year < eras.find((era) => era.id === 'isu').max).map((event) => event.year);
     if (isuYears.length) $('[data-era-card="isu"] small').textContent = `${formatYear(Math.min(...isuYears))} – ${formatYear(Math.max(...isuYears))}`;
     setupFilters();
+    renderCharacterGallery();
     if (warnings.length) {
       let note = $('.data-warning');
       if (!note) { note = document.createElement('p'); note.className = 'data-warning'; $('#timeline-shell').append(note); }

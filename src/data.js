@@ -1,3 +1,5 @@
+import { characterLabelsForEvent } from './characters.js';
+
 export const DATASET_PATH = "data/Assassin's Creed Timeline - Data V3.csv";
 
 const REQUIRED_HEADERS = ["Year", "Era", "Title"];
@@ -155,7 +157,7 @@ export function filterEvents(events, filters = {}) {
   return events.filter((event) => {
     if (wantedGames.size > 0 && !wantedGames.has(event.game)) return false;
     if (wantedCategories.size > 0 && !wantedCategories.has(event.category)) return false;
-    if (wantedCharacters.size > 0 && !wantedCharacters.has(event.character)) return false;
+    if (wantedCharacters.size > 0 && !characterLabelsForEvent(event).some((name) => wantedCharacters.has(name))) return false;
     if (!needle) return true;
     return Object.values(event).some((value) => searchable(value).includes(needle));
   });

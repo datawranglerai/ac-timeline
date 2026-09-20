@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { DATASET_PATH } from '../src/data.js';
 import { checkFastNavigation } from './navigation-checks.mjs';
+import { checkCharacterMedia } from './media-checks.mjs';
+import { checkLifespans } from './lifespan-checks.mjs';
 
 // Optional browser verification: use an installed Playwright, or point to an existing one.
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
@@ -14,14 +16,13 @@ await mkdir('output', { recursive: true });
 async function assertMemoryContext(page) {
   const point = page.locator('.memory-marker.is-selected');
   assert.equal(await point.count(), 1);
-  const marker = await point.boundingBox();
-  const panel = await page.locator('#memory-dialog').boundingBox();
-  const x = marker.x + marker.width / 2, y = marker.y + marker.height / 2;
-  assert.ok(x < panel.x - 25 || x > panel.x + panel.width + 25 || y < panel.y - 25 || y > panel.y + panel.height + 25, 'The selected point must remain exposed beside the panel');
-  const spotlight = await page.locator('#memory-dialog').evaluate((dialog) => {
+  const { x, y, panel, spotlight } = await page.locator('#memory-dialog').evaluate((dialog) => {
+    const marker = document.querySelector('.memory-marker.is-selected').getBoundingClientRect();
+    const panel = dialog.getBoundingClientRect();
     const backdrop = getComputedStyle(dialog, '::backdrop');
-    return { x: parseFloat(dialog.style.getPropertyValue('--memory-focus-x')), y: parseFloat(dialog.style.getPropertyValue('--memory-focus-y')), image: backdrop.backgroundImage, blur: backdrop.backdropFilter };
+    return { x: marker.x + marker.width / 2, y: marker.y + marker.height / 2, panel: { x: panel.x, y: panel.y, width: panel.width, height: panel.height }, spotlight: { x: parseFloat(dialog.style.getPropertyValue('--memory-focus-x')), y: parseFloat(dialog.style.getPropertyValue('--memory-focus-y')), image: backdrop.backgroundImage, blur: backdrop.backdropFilter } };
   });
+  assert.ok(x < panel.x - 25 || x > panel.x + panel.width + 25 || y < panel.y - 25 || y > panel.y + panel.height + 25, 'The selected point must remain exposed beside the panel');
   assert.ok(Math.abs(spotlight.x - x) < 1 && Math.abs(spotlight.y - y) < 1, 'The spotlight follows the actual marker');
   assert.match(spotlight.image, /radial-gradient/);
   assert.equal(spotlight.blur, 'none');
@@ -291,5 +292,9 @@ try {
   checks.push('a new CSV game/year appears automatically in counts, bounds, and filters');
 
   assert.deepEqual(errors, []);
+  await checkCharacterMedia(browser, base);
+  await checkLifespans(browser, base);
+  checks.push('chronological birth/death cards, shared lifespan scale, overlaps and gaps, uncertainty, sources, and mobile comparison');
+  checks.push('character portraits and fallbacks, on-demand GIFs, pause/play, reduced motion, shared-character media, and full-body journeys');
   console.log(JSON.stringify({ passed: checks, pageErrors: errors, screenshots: ['output/desktop.png', 'output/renaissance.png', 'output/mobile.png'] }, null, 2));
 } finally { await browser.close(); }
