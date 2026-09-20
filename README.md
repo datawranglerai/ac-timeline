@@ -69,6 +69,19 @@ npm run test:browser
 
 To reuse a separate Playwright installation, set `PLAYWRIGHT_MODULE` to its absolute `index.mjs` path. `BROWSER_EXECUTABLE` can point to an existing Chromium executable; `TEST_BASE_URL` changes the server URL. Playwright is only a verification tool and is not bundled with the app. Screenshots are saved to the ignored `output/` directory.
 
+## Publish with GitHub Pages
+
+The entire app can run on GitHub Pages: JavaScript, CSV data, images, and GIFs are static files. No backend or package installation is required. Relative URLs support both the repository path `/ac-timeline/` and a custom domain.
+
+The [deployment workflow](.github/workflows/pages.yml) runs unit tests, syntax/asset checks, and the production build on pull requests to `main`. Pushes to `main` also publish `dist/` through GitHub Actions. Deployment only runs after the build succeeds; feature branches and pull requests cannot publish. Future CSV, artwork, and code updates deploy through the same workflow.
+
+To activate hosting:
+
+1. Open [Settings → Pages](https://github.com/datawranglerai/ac-timeline/settings/pages) and choose **GitHub Actions** under **Build and deployment → Source**. Public repositories support Pages on GitHub Free; a private repository requires a [supported paid plan](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+2. Merge this workflow and the app into `main`. Follow **Deploy to GitHub Pages** in the repository’s **Actions** tab. To redeploy without a commit, choose **Run workflow** with the `main` branch.
+
+After the first successful deployment, the default public address is **https://datawranglerai.github.io/ac-timeline/**. The workflow also links to the deployed site. `dist/` is generated in Actions and does not need to be committed.
+
 ## Project structure
 
 - `index.html` — page structure and accessible controls.
