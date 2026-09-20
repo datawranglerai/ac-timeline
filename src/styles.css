@@ -148,8 +148,10 @@ img {
 }
 
 .wordmark img {
-  height:42px;
-  width:35px
+  height:60px;
+  width:44px;
+  object-fit:contain;
+  flex:none
 }
 
 .wordmark-light {
@@ -2032,7 +2034,8 @@ h2 {
 }
 
 .footer-brand img {
-  opacity:.7
+  object-fit:contain;
+  flex:none
 }
 
 .site-footer p {
@@ -2614,7 +2617,8 @@ html:has(#memory-dialog[open]) {
     letter-spacing:1.7px
   }
   .wordmark img {
-    width:30px
+    width:36px;
+    height:50px
   }
   .main-nav {
     gap:22px
@@ -2825,8 +2829,8 @@ html:has(#memory-dialog[open]) {
     margin-top:6px
   }
   .wordmark img {
-    width:25px;
-    height:33px
+    width:29px;
+    height:40px
   }
   .main-nav {
     gap:17px
