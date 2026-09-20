@@ -203,15 +203,6 @@ img {
   color:var(--faint)
 }
 
-.header-note {
-  color:var(--muted);
-  font-size:8px;
-  letter-spacing:1.9px;
-  display:flex;
-  gap:12px;
-  align-items:center
-}
-
 .tiny-diamond {
   height:5px;
   width:5px;
@@ -231,9 +222,9 @@ img {
 .hero-image {
   position:absolute;
   inset:0 0 0 22%;
-  background-image:linear-gradient(90deg,var(--bg),transparent 35%),linear-gradient(0deg,var(--bg),transparent 38%),url('../assets/florence-hero.jpg');
+  background-image:linear-gradient(90deg,var(--bg),transparent 35%),linear-gradient(0deg,var(--bg),transparent 38%),url("../assets/ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231221145000.jpg");
   background-size:cover;
-  background-position:center,center,60% 40%;
+  background-position:center,center,60% top;
   opacity:.83
 }
 
@@ -304,13 +295,6 @@ h1 {
 h1 em {
   font-weight:400;
   color:#d7bd8b
-}
-
-.hero-description {
-  color:#afb6ac;
-  font-size:12px;
-  line-height:1.9;
-  max-width:445px
 }
 
 .hero-bottom {
@@ -1398,19 +1382,14 @@ h2 {
 
 .timeline-note {
   display:flex;
-  justify-content:space-between;
+  justify-content:flex-end;
   gap:12px;
   color:#7e8b7b;
   margin-top:13px;
   font-size:8px
 }
 
-.timeline-note>span:first-child {
-  font-size:7px;
-  letter-spacing:1.3px
-}
-
-.timeline-note>span:last-child {
+.timeline-data-note {
   display:flex;
   align-items:center;
   gap:6px
@@ -2556,9 +2535,6 @@ html:has(#memory-dialog[open]) {
   .page-width,.hero-content {
     width:calc(100% - 68px)
   }
-  .header-note {
-    display:none
-  }
   .hero-caption {
     right:34px
   }
@@ -2634,9 +2610,6 @@ html:has(#memory-dialog[open]) {
   }
   h1 {
     font-size:65px
-  }
-  .hero-description {
-    font-size:11px
   }
   .hero-image {
     inset:0 0 0 8%;
@@ -2726,10 +2699,6 @@ html:has(#memory-dialog[open]) {
   }
   .timeline-note {
     font-size:7px
-  }
-  .timeline-note>span:first-child {
-    letter-spacing:.8px;
-    font-size:6px
   }
   .discover {
     padding-top:38px
@@ -2856,7 +2825,7 @@ html:has(#memory-dialog[open]) {
   }
   .hero-image {
     inset:0 0 0 0;
-    background-position:center,center,66% center;
+    background-position:center,center,48% center;
     opacity:.56
   }
   .hero:after {
@@ -2879,14 +2848,6 @@ html:has(#memory-dialog[open]) {
     margin:25px 0 20px;
     letter-spacing:-1px;
     line-height:1.01
-  }
-  .hero-description {
-    font-size:10px;
-    line-height:1.9;
-    max-width:295px
-  }
-  .hero-description br {
-    display:none
   }
   .hero-bottom {
     gap:22px;
@@ -3135,10 +3096,7 @@ html:has(#memory-dialog[open]) {
     gap:8px;
     margin-top:11px
   }
-  .timeline-note>span:first-child {
-    display:none
-  }
-  .timeline-note>span:last-child {
+  .timeline-data-note {
     font-size:6px;
     justify-content:space-between;
     width:100%;
@@ -3295,9 +3253,6 @@ html:has(#memory-dialog[open]) {
 
 /* Readable labels and touch targets on the compact chart. */
 @media(max-width:700px) {
-  .hero-description {
-    font-size:11px
-  }
   .lane-label strong {
     font-size:9px
   }
@@ -3362,7 +3317,7 @@ html:has(#memory-dialog[open]) {
   .hero-caption {
     display:none
   }
-  .timeline-note>span:last-child {
+  .timeline-data-note {
     font-size:7px;
     flex-wrap:wrap;
     justify-content:flex-start

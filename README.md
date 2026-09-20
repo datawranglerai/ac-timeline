@@ -86,4 +86,4 @@ To reuse a separate Playwright installation, set `PLAYWRIGHT_MODULE` to its abso
 
 Earlier AmCharts/D3 experiments remain in their original files. The new app starts at `index.html`.
 
-Assassin’s Creed belongs to Ubisoft. This is an independent fan project. The Florence illustration was created with the built-in image-generation tool; the Kenway image is an optimized derivative of an existing repository asset. Google Fonts supplies the display/UI fonts with local system fallbacks if unavailable.
+Assassin’s Creed belongs to Ubisoft. This is an independent fan project. The hero is the project creator’s PS5 screenshot from Assassin’s Creed Mirage. The Renaissance card’s Florence illustration was created with the built-in image-generation tool; the Kenway image is an optimized derivative of an existing repository asset. Google Fonts supplies the display/UI fonts with local system fallbacks if unavailable.
