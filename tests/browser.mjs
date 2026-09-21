@@ -43,6 +43,27 @@ try {
   await page.screenshot({ path: 'output/desktop.png', fullPage: true });
   checks.push('all 96 V3 source records load; desktop screenshot');
 
+  for (const { card, game, era, count } of [
+    { card: '.mirage-card', game: "Assassin's Creed Mirage", era: 'medieval', count: 4 },
+    { card: '.shadows-card', game: "Assassin's Creed Shadows", era: 'renaissance', count: 9 },
+  ]) {
+    await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
+    await page.locator('#search').fill('no-memory-matches-xyz');
+    await page.locator(card).click();
+    assert.equal(await page.locator('#search').inputValue(), '');
+    assert.equal(await page.locator('#timeline-view').isVisible(), true);
+    assert.equal(await page.locator('input[name="games"]:checked').count(), 1);
+    assert.equal(await page.locator('input[name="games"]:checked').inputValue(), game);
+    assert.equal(await page.locator(`[data-era="${era}"]`).getAttribute('aria-pressed'), 'true');
+    assert.match(await page.locator('#visible-status').innerText(), new RegExp(`${count} of 96`));
+  }
+  await page.locator('.isu-card').click();
+  assert.equal(await page.locator('input[name="games"]:checked').count(), 0);
+  assert.match(await page.locator('#visible-status').innerText(), /10 of 96/);
+  await page.locator('#reset-view').click();
+  assert.match(await page.locator('#visible-status').innerText(), /96 of 96/);
+  checks.push('Mirage and Shadows discovery cards clear prior searches, select their game and era, restore the timeline, and reset cleanly through the Isu card');
+
   await page.locator('#zoom-in').evaluate((button) => {
     for (let index = 0; index < 30; index++) button.click();
   });
@@ -86,7 +107,7 @@ try {
   await page.locator(`input[name="games"][value="Assassin's Creed Shadows"]`).check();
   assert.equal(await page.locator('.list-memory').count(), 9);
   await page.locator('.list-memory').filter({ hasText: 'Fujibayashi Naoe is born' }).click();
-  assert.match(await page.locator('.memory-year').innerText(), /c\. 1,564 CE/);
+  assert.match(await page.locator('.memory-year').innerText(), /c\. 1564 CE/);
   assert.match(await page.locator('.memory-meta').innerText(), /Iga Province, Japan/);
   assert.match(await page.locator('.memory-description').innerText(), /plotting placeholder/);
   await page.keyboard.press('Escape');
@@ -124,7 +145,7 @@ try {
   assert.equal(await page.locator('.list-memory').count(), 1);
   await page.locator('.list-memory').first().click();
   assert.match(await page.locator('.memory-meta').innerText(), /Crawley, England/);
-  assert.match(await page.locator('.memory-meta').innerText(), /9 Nov 1,847 CE/);
+  assert.match(await page.locator('.memory-meta').innerText(), /9 Nov 1847 CE/);
   await page.keyboard.press('Escape');
   await page.locator('#search').fill('Eivor is Laid to Rest');
   assert.equal(await page.locator('.list-memory').count(), 1);
@@ -182,7 +203,7 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('.memory-marker.is-selected'));
   assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
-  await page.locator('[data-era-card="renaissance"]').click();
+  await page.locator('[data-era="renaissance"]').click();
   assert.match(await page.locator('#visible-status').innerText(), /13 of 96/);
   await page.locator('.memory-marker').first().click();
   const context = await assertMemoryContext(page);
@@ -285,7 +306,7 @@ try {
   await expanded.goto(base);
   await expanded.waitForSelector('.memory-marker');
   assert.equal(await expanded.locator('#memory-total').innerText(), '97');
-  assert.match(await expanded.locator('#overview-last').innerText(), /2,050 CE/);
+  assert.match(await expanded.locator('#overview-last').innerText(), /2050 CE/);
   await expanded.locator('[data-filter="games"] summary').click();
   await expanded.locator('input[name="games"][value="Future AC"]').check();
   assert.match(await expanded.locator('#visible-status').innerText(), /1 of 97/);

@@ -60,7 +60,7 @@ test("V3 loads all 96 records including Shadows and preserves source metadata", 
   assert.equal(induction.start, "1860-01-01");
   assert.equal(induction.end, "1868-01-01");
   assert.equal(formatSourceDate(staff.start), "1 Jan 75,100 BCE");
-  assert.equal(formatSourceDate(twins.end), "9 Nov 1,847 CE");
+  assert.equal(formatSourceDate(twins.end), "9 Nov 1847 CE");
   const shadows = filterEvents(events, { games: ["Assassin's Creed Shadows"] });
   assert.equal(shadows.length, 9);
   assert.equal(filterEvents(events, { characters: ['Fujibayashi Naoe'] }).length, 7);
@@ -100,8 +100,27 @@ test("filterEvents combines facets and accent-insensitive text search", () => {
 
 test("year and game labels are concise", () => {
   assert.equal(formatYear(-75383, true), "c. 75,383 BCE");
-  assert.equal(formatYear(2012), "2,012 CE");
+  assert.equal(formatYear(2012), "2012 CE");
   assert.equal(formatYear(0), "Unknown date");
   assert.equal(shortGame("Assassin's Creed IV: Black Flag"), "IV: Black Flag");
   assert.equal(shortGame("Assassin's Creed: Revelations"), "Revelations");
+});
+
+test("calendar years below 5000 omit separators while large years retain them", () => {
+  assert.equal(formatYear(2017), "2017 CE");
+  assert.equal(formatYear(1564, true), "c. 1564 CE");
+  assert.equal(formatYear(-1260), "1260 BCE");
+  assert.equal(formatYear(-4999), "4999 BCE");
+  assert.equal(formatYear(-5000), "5,000 BCE");
+  assert.equal(formatYear(-5001), "5,001 BCE");
+  assert.equal(formatYear(-75000), "75,000 BCE");
+  assert.equal(formatYear(10000), "10,000 CE");
+});
+
+test("recorded dates use the same year formatting as modal headings", () => {
+  assert.equal(formatSourceDate("2017-01-01"), "1 Jan 2017 CE");
+  assert.equal(formatSourceDate("1847-11-09"), "9 Nov 1847 CE");
+  assert.equal(formatSourceDate("-1260-01-01"), "1 Jan 1260 BCE");
+  assert.equal(formatSourceDate("-5000-01-01"), "1 Jan 5,000 BCE");
+  assert.equal(formatSourceDate("-75100-01-01"), "1 Jan 75,100 BCE");
 });

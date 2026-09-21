@@ -1861,8 +1861,17 @@ h2 {
   content:'';
   position:absolute;
   inset:0;
-  background:linear-gradient(0deg,#101714f2,transparent 95%);
+  background:linear-gradient(180deg,#10171499,transparent 45%),linear-gradient(0deg,#101714f2,transparent 95%);
   z-index:-1
+}
+
+.discovery-image {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:-2
 }
 
 .discovery-card:hover {
@@ -1931,67 +1940,19 @@ h2 {
   margin-top:10px
 }
 
-.renaissance-card {
-  background-image:linear-gradient(90deg,#20271c44,#1f261f22),url('../assets/florence-hero.jpg');
-  background-size:cover;
-  background-position:center,75% 42%
+.isu-card .discovery-image {
+  object-position:62% 48%
 }
 
-.pirate-card {
-  background-image:linear-gradient(90deg,#0e201942,#16221e55),url('../assets/kenway-memory.jpg');
-  background-size:cover;
-  background-position:center,center 35%
+.mirage-card .discovery-image {
+  object-position:38% center
 }
 
-.isu-card {
-  background:radial-gradient(ellipse at 80% 10%,#8a744233,transparent 65%),#1b241e
-}
-
-.isu-art {
-  position:absolute;
-  right:20px;
-  top:-15px;
-  width:210px;
-  height:210px;
-  opacity:.6;
-  z-index:-1;
-  display:grid;
-  place-items:center
-}
-
-.isu-art>span {
-  position:absolute;
-  border:1px solid #c3a57280;
-  width:150px;
-  height:150px;
-  transform:rotate(45deg)
-}
-
-.isu-art>span:nth-child(2) {
-  transform:rotate(45deg);
-  width:110px;
-  height:110px;
-  border-color:#c3a57260
-}
-
-.isu-art>span:nth-child(3) {
-  width:62px;
-  height:62px;
-  border-radius:50%;
-  box-shadow:0 0 50px #c9a56022,inset 0 0 26px #c9a56033
-}
-
-.isu-art:before,.isu-art:after {
-  content:'';
-  position:absolute;
-  background:#c3a57255;
-  width:1px;
-  height:250px;
-  transform:rotate(45deg)
-}
-
-.isu-art:after {
-  transform:rotate(-45deg)
+.shadows-card .discovery-image {
+  /* Frame the screenshot's central picture area, excluding its letterbox bars. */
+  top:-17%;
+  height:134%;
+  object-position:68% center
 }
 
 .site-footer {
@@ -3183,12 +3144,6 @@ html:has(#memory-dialog[open]) {
   }
   .discovery-copy small {
     font-size:8px
-  }
-  .renaissance-card {
-    background-position:center,center 41%
-  }
-  .pirate-card {
-    background-position:center,center 37%
   }
   .site-footer {
     padding:22px 0 24px;

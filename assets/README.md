@@ -2,7 +2,13 @@
 
 The main hero uses the original PS5 screenshot supplied by the project’s creator: `ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231221145000.jpg`. It is displayed directly, with responsive framing and CSS gradients for text readability. Its caption identifies Basim Ibn Ishaq, Assassin’s Creed Mirage, and the PS5 capture.
 
-`florence-hero.jpg` is a decorative AI-generated illustration, made with the **built-in image-generation tool** on 2026-09-18 and exported to JPEG for the web. It is now used by the Renaissance discovery card. It is not presented as game footage or a historical source.
+The three discovery cards also use the creator’s original PS5 captures, with CSS framing and gradients for readability:
+
+- Isu: `ps5-screenshots/Assassin's Creed® Valhalla/Assassin's Creed® Valhalla_20210408204857.jpg`.
+- Mirage / ninth-century Baghdad: `ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231206204738.jpg`.
+- Shadows / sixteenth-century Japan: `ps5-screenshots/Assassin's Creed® Shadows/Assassin's Creed® Shadows_20251109205552.jpg`. Its existing letterbox bars are cropped out by the card’s CSS frame.
+
+`florence-hero.jpg` is a retained decorative AI-generated illustration, made with the **built-in image-generation tool** on 2026-09-18 and exported to JPEG for the web. It was previously used by the hero and Renaissance discovery card and is no longer displayed. It is not presented as game footage or a historical source.
 
 Final generation prompt:
 

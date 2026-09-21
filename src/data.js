@@ -166,9 +166,9 @@ export function filterEvents(events, filters = {}) {
 export function formatYear(year, approx = false) {
   const numericYear = Number(year);
   if (!Number.isFinite(numericYear) || numericYear === 0) return "Unknown date";
-  const label = numericYear < 0
-    ? `${Math.abs(numericYear).toLocaleString("en-GB")} BCE`
-    : `${numericYear.toLocaleString("en-GB")} CE`;
+  const magnitude = Math.abs(numericYear);
+  const displayedYear = magnitude.toLocaleString("en-GB", { useGrouping: magnitude >= 5000 });
+  const label = `${displayedYear} ${numericYear < 0 ? "BCE" : "CE"}`;
   return approx ? `c. ${label}` : label;
 }
 
