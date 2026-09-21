@@ -7,7 +7,7 @@ import {
   charactersForEvent,
   charactersForEvents,
 } from "../src/characters.js";
-import { DATASET_PATH, loadEvents } from "../src/data.js";
+import { loadEvents } from "../src/data.js";
 
 function ids(event) {
   return charactersForEvent(event).map(({ id }) => id);
@@ -62,18 +62,20 @@ test("optimized figure and poster derivatives exist as WebP containers", async (
   }
 });
 
-test("V3 character fields resolve all identities backed by supplied media", async () => {
-  const csv = await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), "utf8");
-  const { events } = loadEvents(csv);
-  const matchedEvents = events.filter((event) => charactersForEvent(event).length > 0);
-  const matchedCharacters = charactersForEvents(events);
-
-  assert.equal(matchedEvents.length, 66);
-  assert.deepEqual(matchedCharacters.map(({ id }) => id), [
-    "kassandra", "ezio", "bayek", "reda", "altair", "almualim", "edward", "haytham",
-    "desmond", "juno", "aiden", "layla", "eivor", "basim", "hytham", "jacobfrye",
-    "eviefrye", "aya", "arno", "naoe", "yasuke",
-  ]);
+test("CSV character fields resolve every registered identity and allow future unknown characters", () => {
+  const characterFields = [...CHARACTERS.map(({ name }) => name), "Naoe & Yasuke", "Minerva; Jupiter", "Future protagonist"];
+  const csv = "Year,Era,Title,Character\n" + characterFields.map((name, index) =>
+    `1500,CE,Memory ${index},"${name.replaceAll('"', '""')}"`
+  ).join("\n");
+  const { events, warnings } = loadEvents(csv);
+  assert.equal(events.length, characterFields.length);
+  assert.deepEqual(warnings, []);
+  assert.deepEqual(events.slice(0, CHARACTERS.length).map(ids), CHARACTERS.map(({ id }) => [id]));
+  assert.deepEqual(ids(events.at(-3)), ["naoe", "yasuke"]);
+  assert.deepEqual(ids(events.at(-2)), ["minerva", "jupiter"]);
+  assert.deepEqual(ids(events.at(-1)), []);
+  assert.deepEqual(characterLabelsForEvent(events.at(-1)), ["Future protagonist"]);
+  assert.deepEqual(charactersForEvents(events).map(({ id }) => id), CHARACTERS.map(({ id }) => id));
 });
 
 test("multi-character fields preserve source order and remove duplicates", () => {

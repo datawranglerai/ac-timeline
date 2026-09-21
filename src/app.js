@@ -3,6 +3,7 @@ import { createTimeScale, clampViewport, zoomViewport, panViewport } from './tim
 import { CHARACTERS, charactersForEvent, charactersForEvents, characterLabelsForEvent } from './characters.js';
 import { LIFESPANS } from './lifespan-data.js';
 import { createLifespanScale, formatLifeYear, lifeDates, lifeSpan, overlaps, sortCharactersByLifespan } from './lifespan-model.js';
+import { setupAnalytics, trackEvent } from './analytics.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -208,6 +209,7 @@ function showLifespanInfo(id) {
 function followCharacterJourney(id) {
   const character = CHARACTERS.find((person) => person.id === id);
   if (!character) return;
+  trackEvent(`character-${character.id}`, `Explore ${character.displayName || character.name}`);
   const memories = state.events.filter((event) => charactersForEvent(event).some((person) => person.id === id));
   if (!memories.length) { openCharacterProfile(character); return; }
   resetFilters();
@@ -271,6 +273,7 @@ function setupFilters() {
     cancelChartGestures();
     state[input.name] = $$(`input[name="${input.name}"]:checked`).map((checkbox) => checkbox.value);
     render();
+    trackEvent(`filter-${input.name}`, `Change ${input.name} filter`);
   });
   $('#filters').addEventListener('click', (event) => {
     const clear = event.target.closest('[data-clear]');
@@ -292,7 +295,7 @@ function syncFilters() {
 }
 
 function setupEras() {
-  $('#era-navigation').innerHTML = eras.map((era) => `<button class="era-button ${era.id === 'all' ? 'active' : ''}" data-era="${era.id}" aria-pressed="${era.id === 'all'}" style="--era-color:${era.color}">${era.id === 'all' ? icon('globe') : '<span class="era-dot" aria-hidden="true"></span>'}${era.name}</button>`).join('');
+  $('#era-navigation').innerHTML = eras.map((era) => `<button class="era-button ${era.id === 'all' ? 'active' : ''}" data-era="${era.id}" data-analytics-event="era-${era.id}" data-analytics-title="Explore ${era.name}" aria-pressed="${era.id === 'all'}" style="--era-color:${era.color}">${era.id === 'all' ? icon('globe') : '<span class="era-dot" aria-hidden="true"></span>'}${era.name}</button>`).join('');
   $('#lane-labels').innerHTML = lanes.map((lane) => `<div class="lane-label" style="--lane-color:${lane.color}">${icon(lane.icon)}<span><strong>${lane.name}</strong><small>${lane.subtitle}</small></span></div>`).join('');
 }
 
@@ -529,6 +532,7 @@ function presentMemory() {
 function openMemory(id) {
   const event = state.events.find((memory) => memory.id === id);
   if (!event) return;
+  trackEvent('memory-open', 'Open a memory');
   state.selectedId = id;
   memoryContextIds = [id];
   const sequence = state.filtered.length ? state.filtered : state.events;
@@ -548,6 +552,7 @@ function openGroup(id) {
   const events = state.groups.get(id);
   if (!events?.length) return;
   if (events.length === 1) return openMemory(events[0].id);
+  trackEvent('memory-cluster-open', 'Open a memory cluster');
   clusterEvents = events;
   memoryMedia = [];
   selectedMediaId = null;
@@ -560,12 +565,13 @@ function openGroup(id) {
 function showInfo(type) {
   cancelChartGestures();
   const help = type === 'help';
-  $('#info-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">THE ANIMUS ARCHIVE</p><button class="close-button" data-close="info" aria-label="Close information">×</button></div><div class="info-body"><h2 id="info-title">${help ? 'Follow your curiosity.' : 'About the project'}</h2>${help ? `<p>Every point is a memory. Start with an era, follow a character, or see where the threads of history lead.</p><div class="help-row"><strong>Travel in time</strong><span>Drag the timeline or use the arrow buttons. With the chart focused, use the left and right arrow keys.</span></div><div class="help-row"><strong>Look closer</strong><span>Scroll over the timeline, press + / −, or use the zoom buttons. The overview handles adjust the start and end independently.</span></div><div class="help-row"><strong>Find a story</strong><span>Search names, titles, games, or descriptions. Games, categories, and characters can be combined. Press / to search.</span></div><div class="help-row"><strong>Open a memory</strong><span>Select a diamond or a numbered group. The list button offers the same memories in chronological order.</span></div><div class="help-row"><strong>Start again</strong><span>Reset view restores all dates and keeps your filters. Press Home when the chart is focused for the same action.</span></div>` : `<p>A fan-made atlas of Assassin's Creed, built from a CSV and a lot of wiki digging. Right now it holds <strong>${state.events.length} memories</strong> from <strong>${new Set(state.events.filter((event) => event.game !== 'Unassigned game').map((event) => event.game)).size} named games</strong>, which is a work in progress rather than a complete record. Sources and dates are reproduced from the supplied CSV, and spoilers are fair game.</p><p>The timeline runs on an adaptive scale. Any gap in the data longer than 2,000 years gets compressed, and the striped break marks where that happened. Without it, the Isu era would shove everything since 3000 BC into a smudge at the far right, like a bar chart with one bar 40,000 tall. Switch to Linear for a uniformly spaced year scale. The era tabs are navigation ranges, don't think of them as formal historical boundaries.</p><p>New rows in <a href="./${escape(DATASET_PATH)}" download>the source CSV</a> show up on reload, and the filters are generated from whatever data is there. "c." marks an approximate date, and missing values are labeled as missing instead of guessed.</p><p>Assassin's Creed and its characters belong to Ubisoft. This is an independent fan project with no official affiliation. The hero image is a PS5 screenshot from Assassin's Creed Mirage, captured by me. The discovery cards also use my PS5 captures from Assassin's Creed Valhalla, Mirage, and Shadows.</p>`}</div>`;
+  trackEvent(help ? 'help-open' : 'about-open', help ? 'Open timeline help' : 'Open About the project');
+  $('#info-content').innerHTML = `<div class="dialog-top"><p class="eyebrow">THE ANIMUS ARCHIVE</p><button class="close-button" data-close="info" aria-label="Close information">×</button></div><div class="info-body"><h2 id="info-title">${help ? 'Follow your curiosity.' : 'About the project'}</h2>${help ? `<p>Every point is a memory. Start with an era, follow a character, or see where the threads of history lead.</p><div class="help-row"><strong>Travel in time</strong><span>Drag the timeline or use the arrow buttons. With the chart focused, use the left and right arrow keys.</span></div><div class="help-row"><strong>Look closer</strong><span>Scroll over the timeline, press + / −, or use the zoom buttons. The overview handles adjust the start and end independently.</span></div><div class="help-row"><strong>Find a story</strong><span>Search names, titles, games, or descriptions. Games, categories, and characters can be combined. Press / to search.</span></div><div class="help-row"><strong>Open a memory</strong><span>Select a diamond or a numbered group. The list button offers the same memories in chronological order.</span></div><div class="help-row"><strong>Start again</strong><span>Reset view restores all dates and keeps your filters. Press Home when the chart is focused for the same action.</span></div>` : `<p>A fan-made atlas of Assassin's Creed, built from a CSV and a lot of wiki digging. Right now it holds <strong>${state.events.length} memories</strong> from <strong>${new Set(state.events.filter((event) => event.game !== 'Unassigned game').map((event) => event.game)).size} named games</strong>, which is a work in progress rather than a complete record. Sources and dates are reproduced from the supplied CSV, and spoilers are fair game.</p><p>The timeline runs on an adaptive scale. Any gap in the data longer than 2,000 years gets compressed, and the striped break marks where that happened. Without it, the Isu era would shove everything since 3000 BC into a smudge at the far right, like a bar chart with one bar 40,000 tall. Switch to Linear for a uniformly spaced year scale. The era tabs are navigation ranges, don't think of them as formal historical boundaries.</p><p>New rows in <a href="./${escape(DATASET_PATH)}" download data-analytics-event="download-csv" data-analytics-title="Download the timeline CSV">the source CSV</a> show up on reload, and the filters are generated from whatever data is there. "c." marks an approximate date, and missing values are labeled as missing instead of guessed.</p><p>Assassin's Creed and its characters belong to Ubisoft. This is an independent fan project with no official affiliation. The hero image is a PS5 screenshot from Assassin's Creed Mirage, captured by me. The discovery cards also use my PS5 captures from Assassin's Creed Valhalla, Mirage, and Shadows.</p>`}</div>`;
   if (!help) {
     $('#info-content .info-body').insertAdjacentHTML('beforeend', `
       <div class="project-support">
         <p>If it saved you an evening of tab-hopping, there's a coffee button below.</p>
-        <a class="primary-button coffee-button" href="https://www.buymeacoffee.com/datawranglerai" target="_blank" rel="noopener noreferrer" aria-label="Buy me a coffee (opens in a new tab)">
+        <a class="primary-button coffee-button" data-analytics-event="support-coffee" data-analytics-title="Buy me a coffee" href="https://www.buymeacoffee.com/datawranglerai" target="_blank" rel="noopener noreferrer" aria-label="Buy me a coffee (opens in a new tab)">
           ${icon('coffee')} Buy me a coffee ${icon('up-right')}
         </a>
       </div>`);
@@ -602,6 +608,7 @@ function setupInteractions() {
     }
     if (target.dataset.followCharacter) {
       const character = target.dataset.followCharacter;
+      trackEvent('character-follow', 'Follow a character from a memory');
       resetFilters(); state.characters = [character]; state.viewport = [0, 1]; state.era = 'all'; state.view = 'list'; $('#memory-dialog').close(); render(); $('#explorer').scrollIntoView({ behavior: 'smooth' });
     }
     const action = target.dataset.action;
@@ -628,6 +635,7 @@ function setupInteractions() {
     state.mode = event.target.value; state.scale = createTimeScale(state.events, state.mode);
     state.viewport = fullView ? [0, 1] : clampViewport(...years.map((year) => state.scale.toUnit(year)));
     render();
+    trackEvent(`scale-${state.mode}`, `Use ${state.mode} time scale`);
   });
   document.addEventListener('keydown', (event) => {
     const typing = event.target.matches('input, textarea, select') || event.target.isContentEditable;
@@ -827,6 +835,7 @@ async function load() {
   }
 }
 
+setupAnalytics();
 decorateIcons();
 setupEras();
 setupInteractions();

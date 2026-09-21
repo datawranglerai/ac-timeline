@@ -45,7 +45,7 @@ Year,Approx,Era,Real Year,Start,End,Category,Character,Game,Location,Source,Titl
 
 Filters, counts, bounds, and compressed gaps update automatically on reload. Optional blank values receive explicit fallbacks. Invalid dates are skipped with a visible warning. Sources are attribution text; URLs are not invented from source labels. `Image` can contain a relative path or an HTTP(S) URL. Add local assets under `images/` or `assets/` so the build includes them.
 
-V3 contains **96 records** across **17 named titles** (including a Watch Dogs entry), with two records lacking a game. The nine Shadows memories cover 1564–1582 CE and include Naoe, Yasuke, and the new Artefacts category. It spans **77,000 BCE–2030 CE**. The Daniel Cross record at 2000 CE has no title and is shown as “Untitled memory.” Eivor’s burial record has a blank Era; the matching signed year supplies 920 CE. The Frye induction record remains plotted at its explicit `Year` of 1868, while its recorded 1860–1868 dates are preserved in the details. The timeline preserves the supplied chronology rather than claiming complete coverage or verifying the underlying lore.
+V3 includes Shadows, with Naoe, Yasuke, and the Artefacts category. Record counts, game counts, and date bounds are derived from the current CSV. The timeline preserves the supplied chronology rather than claiming complete coverage or verifying the underlying lore.
 
 ## Build and verify
 
@@ -59,6 +59,8 @@ npm run preview
 Deploy the contents of `dist/` to any static host. The build includes the authoritative CSV and local assets. When the CSV changes, rebuild before publishing.
 
 Unit tests exercise CSV edge cases, source records, filtering, chronological boundaries, scale inversion, compressed gaps, and viewport bounds. The check command validates JavaScript syntax, local asset references, and HTML IDs. This project uses JavaScript rather than TypeScript and has no runtime dependencies.
+
+The deployment tests validate that every row of the current CSV loads with unique memory IDs and its source dates and metadata intact. Detailed parser and character-matching regressions use fixed examples, so adding records, characters, games, or editorial corrections does not require updating hardcoded dataset totals. Invalid dates or skipped rows still fail validation; disclosed recovery of a missing era from a matching signed year remains supported.
 
 An optional Playwright suite checks desktop/mobile layouts, filters, search, zoom, pan, detail dialogs, data failures, and future CSV additions. It also stress-tests thousands of wheel events in adaptive and linear scales, empty-period recovery, input reversals, and interrupted navigation. If Playwright and its Chromium browser are already installed:
 
@@ -82,10 +84,34 @@ To activate hosting:
 
 After the first successful deployment, the default public address is **https://datawranglerai.github.io/ac-timeline/**. The workflow also links to the deployed site. `dist/` is generated in Actions and does not need to be committed.
 
+## Traffic and interaction analytics
+
+The async GoatCounter script in `index.html` sends pageviews to [the project’s dashboard](https://ac-timeline.goatcounter.com/). Its endpoint is `https://ac-timeline.goatcounter.com/count`. It sends one initial pageview; opening dialogs, scrolling to sections, and changing the timeline do not create additional pageviews.
+
+`src/analytics.js` records the following deliberate interactions using the [GoatCounter event API](https://www.goatcounter.com/help/events):
+
+| Event names | What they measure |
+| --- | --- |
+| `enter-timeline`, `view-timeline`, `view-list` | Entering the explorer and selecting a view |
+| `era-*`, `discover-isu`, `discover-mirage`, `discover-shadows` | Era selections and discovery cards |
+| `memory-open`, `memory-cluster-open`, `random-memory` | Opening individual/grouped memories and choosing a random memory |
+| `character-*`, `character-follow` | Character gallery journeys and following a character from a memory |
+| `filter-games`, `filter-categories`, `filter-characters` | Changes to each filter dimension |
+| `scale-adaptive`, `scale-linear` | Time-scale selections |
+| `about-open`, `help-open` | About and help dialogs |
+| `download-csv`, `support-coffee` | CSV downloads and Buy Me a Coffee clicks |
+
+Events use `no_session: true` to count repeated actions, while pageviews retain GoatCounter’s default session handling. Filter events describe the filter dimension, not its selected values. Search text, individual memory contents, continuous zoom/pan gestures, and hover activity are not sent as custom events. A random-memory click also opens a memory, so it records both the initiating action and the resulting memory open.
+
+Click delegation covers dynamically recreated modal links without rebinding. Up to 25 early events wait for the async script; blocked or failing analytics cannot interrupt the timeline. [Localhost and common private-network visits are ignored by GoatCounter by default](https://www.goatcounter.com/help/skip-dev); this app does not enable `allow_local`.
+
+Run `npm run test:analytics` against a running local server, with the same optional Playwright environment variables described above. These checks use a small fixture dataset and an intercepted tracker, verify event counts and blocked/delayed-script behavior, and never submit events to the production dashboard.
+
 ## Project structure
 
 - `index.html` — page structure and accessible controls.
 - `src/app.js` — rendering, interactions, grouping, details, and navigation.
+- `src/analytics.js` — best-effort GoatCounter events and delegated click tracking.
 - `src/data.js` — CSV ingestion, normalized events, search, and filters.
 - `src/characters.js` — explicit character aliases and portrait, GIF, poster, and full-body media paths.
 - `src/lifespan-data.js` — sourced biography dates, uncertainty, and continuity notes.

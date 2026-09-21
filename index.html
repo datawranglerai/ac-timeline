@@ -10,6 +10,7 @@
     <link rel="preload" href="./assets/ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231221145000.jpg" as="image">
     <link rel="stylesheet" href="./src/styles.css">
     <script type="module" src="./src/app.js"></script>
+    <script data-goatcounter="https://ac-timeline.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#explorer">Skip to the timeline</a>
@@ -19,8 +20,8 @@
         <span>THE ANIMUS <span class="wordmark-light">ARCHIVE</span><small>AN ASSASSIN’S CREED TIMELINE</small></span>
       </a>
       <nav class="main-nav" aria-label="Main navigation">
-        <a class="nav-link active" href="#explorer" data-nav="timeline">Timeline</a>
-        <a class="nav-link" href="#explorer" data-nav="archive">Memory archive</a>
+        <a class="nav-link active" href="#explorer" data-nav="timeline" data-analytics-event="view-timeline" data-analytics-title="Show timeline view">Timeline</a>
+        <a class="nav-link" href="#explorer" data-nav="archive" data-analytics-event="view-list" data-analytics-title="Show chronological list">Memory archive</a>
         <button class="nav-link" type="button" data-action="about">About the project <span aria-hidden="true">↗</span></button>
       </nav>
     </header>
@@ -33,7 +34,7 @@
           <p class="eyebrow"><span class="short-rule"></span> NOTHING IS TRUE. EVERYTHING IS PERMITTED.</p>
           <h1 id="hero-title">We work in the dark<br> to serve the <em>light.</em></h1>
           <div class="hero-bottom">
-            <a class="primary-button" href="#explorer">Enter the timeline <span aria-hidden="true">↓</span></a>
+            <a class="primary-button" href="#explorer" data-analytics-event="enter-timeline" data-analytics-title="Enter the timeline">Enter the timeline <span aria-hidden="true">↓</span></a>
             <div class="hero-stat"><strong id="year-count">—</strong><span>YEARS OF HIDDEN HISTORY</span></div>
           </div>
         </div>
@@ -54,8 +55,8 @@
             <div class="filter-controls" id="filters"></div>
             <button class="text-button clear-filters" id="clear-filters" hidden>Clear filters <span aria-hidden="true">×</span></button>
             <div class="view-switch" role="group" aria-label="Display mode">
-              <button class="active" data-view="timeline" aria-label="Timeline view" aria-pressed="true"><span data-icon="timeline"></span></button>
-              <button data-view="list" aria-label="Chronological list view" aria-pressed="false"><span data-icon="list"></span></button>
+              <button class="active" data-view="timeline" data-analytics-event="view-timeline" data-analytics-title="Show timeline view" aria-label="Timeline view" aria-pressed="true"><span data-icon="timeline"></span></button>
+              <button data-view="list" data-analytics-event="view-list" data-analytics-title="Show chronological list" aria-label="Chronological list view" aria-pressed="false"><span data-icon="list"></span></button>
             </div>
           </div>
           <div class="chart-toolbar">
@@ -94,11 +95,11 @@
       </section>
 
       <section class="discover page-width" aria-labelledby="discover-title">
-        <div class="discover-heading"><div><p class="eyebrow muted">JUST WANT TO EXPLORE?</p><h2 id="discover-title">History has its turning points.</h2></div><button class="text-button" data-action="surprise">Find me a memory <span data-icon="right"></span></button></div>
+        <div class="discover-heading"><div><p class="eyebrow muted">JUST WANT TO EXPLORE?</p><h2 id="discover-title">History has its turning points.</h2></div><button class="text-button" data-action="surprise" data-analytics-event="random-memory" data-analytics-title="Find me a memory">Find me a memory <span data-icon="right"></span></button></div>
         <div class="discovery-grid">
-          <button class="discovery-card isu-card" data-era-card="isu"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Valhalla/Assassin's Creed® Valhalla_20210408204857.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">01</span><span>BEFORE THE CREED</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>THE FIRST CIVILIZATION</small><strong>Those who came before.</strong><span>Discover the world of the Isu <span aria-hidden="true">→</span></span></span></button>
-          <button class="discovery-card mirage-card" data-era-card="medieval" data-game-card="Assassin's Creed Mirage"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231206204713.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">02</span><span>ASSASSIN’S CREED MIRAGE</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>9TH-CENTURY BAGHDAD</small><strong>A Hidden One’s beginning.</strong><span>Follow Basim in Baghdad <span aria-hidden="true">→</span></span></span></button>
-          <button class="discovery-card shadows-card" data-era-card="renaissance" data-game-card="Assassin's Creed Shadows"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Shadows/Assassin's Creed® Shadows_20251109205552.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">03</span><span>ASSASSIN’S CREED SHADOWS</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>16TH-CENTURY JAPAN</small><strong>Two paths. One purpose.</strong><span>Follow Naoe and Yasuke <span aria-hidden="true">→</span></span></span></button>
+          <button class="discovery-card isu-card" data-era-card="isu" data-analytics-event="discover-isu" data-analytics-title="Explore the Isu discovery card"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Valhalla/Assassin's Creed® Valhalla_20210408204857.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">01</span><span>BEFORE THE CREED</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>THE FIRST CIVILIZATION</small><strong>Those who came before.</strong><span>Discover the world of the Isu <span aria-hidden="true">→</span></span></span></button>
+          <button class="discovery-card mirage-card" data-era-card="medieval" data-analytics-event="discover-mirage" data-analytics-title="Explore the Mirage discovery card" data-game-card="Assassin's Creed Mirage"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231206204713.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">02</span><span>ASSASSIN’S CREED MIRAGE</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>9TH-CENTURY BAGHDAD</small><strong>A Hidden One’s beginning.</strong><span>Follow Basim in Baghdad <span aria-hidden="true">→</span></span></span></button>
+          <button class="discovery-card shadows-card" data-era-card="renaissance" data-analytics-event="discover-shadows" data-analytics-title="Explore the Shadows discovery card" data-game-card="Assassin's Creed Shadows"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Shadows/Assassin's Creed® Shadows_20251109205552.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">03</span><span>ASSASSIN’S CREED SHADOWS</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>16TH-CENTURY JAPAN</small><strong>Two paths. One purpose.</strong><span>Follow Naoe and Yasuke <span aria-hidden="true">→</span></span></span></button>
         </div>
       </section>
     </main>

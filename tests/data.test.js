@@ -33,47 +33,105 @@ test("loadEvents validates headers and skips invalid dates", () => {
   });
 });
 
-test("V3 loads all 96 records including Shadows and preserves source metadata", async () => {
+test("the current dataset loads every source row and preserves its dates and metadata", async () => {
   const csv = await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), "utf8");
+  const rows = parseCSV(csv);
   const { events, warnings } = loadEvents(csv);
-  assert.equal(events.length, 96);
+  assert.ok(rows.length > 0, "The published dataset must not be empty");
+  assert.equal(events.length, rows.length, "Every source row must load without being skipped");
+  assert.equal(new Set(events.map(({ id }) => id)).size, events.length, "Memory IDs must be unique");
+
+  const expectedWarnings = [];
+  for (const [index, row] of rows.entries()) {
+    const event = events[index];
+    const label = `Source row ${index + 2}`;
+    assert.ok(typeof event.id === "string" && event.id.length > 0, `${label}: nonempty memory ID`);
+    const magnitude = Number(row.Year.trim().replaceAll(",", ""));
+    let era = row.Era.trim().toUpperCase();
+    const inferred = era === "";
+    assert.ok(Number.isInteger(magnitude) && magnitude > 0, `${label}: valid year magnitude`);
+    if (inferred) {
+      const signedYear = Number(row["Real Year"].trim().replaceAll(",", ""));
+      assert.equal(Math.abs(signedYear), magnitude, `${label}: missing era has a matching signed year`);
+      era = signedYear < 0 ? "BCE" : "CE";
+      expectedWarnings.push(`Record ${index + 1} is missing Era; ${era} was inferred from its signed Real Year.`);
+    }
+    assert.ok(["BCE", "CE"].includes(era), `${label}: valid era`);
+    assert.equal(event.year, magnitude * (era === "BCE" ? -1 : 1), `${label}: date`);
+    assert.equal(event.era, era, `${label}: era`);
+    assert.equal(event.eraInferred, inferred, `${label}: inference disclosure`);
+    assert.equal(event.approx, ["true", "yes", "1"].includes((row.Approx || "").trim().toLowerCase()), `${label}: approximation`);
+    assert.equal(event.untitled, row.Title.trim() === "", `${label}: untitled disclosure`);
+    for (const [field, column, fallback = ""] of [
+      ["title", "Title", "Untitled memory"], ["game", "Game", "Unassigned game"],
+      ["character", "Character", "Unknown character"], ["category", "Category", "Uncategorised"],
+      ["start", "Start"], ["end", "End"], ["location", "Location"],
+      ["source", "Source"], ["description", "Description"], ["image", "Image"],
+    ]) {
+      assert.equal(event[field], (row[column] || "").trim() || fallback, `${label}: ${column}`);
+    }
+  }
+  assert.deepEqual(warnings, expectedWarnings, "Only explicitly disclosed era recovery is allowed");
+});
+
+test("CSV ingestion preserves recorded dates, metadata, and shared-character filtering", () => {
+  const csv = `Year,Approx,Era,Real Year,Start,End,Category,Character,Game,Location,Source,Title,Image,Description
+75100,TRUE,BCE,-75100,-75100-01-01,-75100-01-01,Pieces of Eden,Aletheia,Assassin's Creed Odyssey,,Ancient source,Ancient staff,,An ancient memory.
+920,FALSE,,920,0920-01-01,0920-01-01,Characters,Eivor,Assassin's Creed Valhalla,Vinland,Vinland source,Vinland burial,,An inferred era.
+1847,FALSE,CE,1847,1847-01-01,1847-11-09,Characters,"Jacob Frye, Evie Frye",Assassin's Creed Syndicate,"Crawley, England",Twins source,Birth of the twins,,A recorded range.
+1868,FALSE,CE,1868,1860-01-01,1868-01-01,Characters,Jacob Frye; Evie Frye,Assassin's Creed Syndicate,London,Induction source,Induction of the twins,,A different recorded start.
+1564,TRUE,CE,1564,1564-01-01,1564-01-01,Characters,Fujibayashi Naoe,Assassin's Creed Shadows,"Iga Province, Japan",Naoe source,Naoe birth,,An approximate date.
+1582,FALSE,CE,1582,1582-01-01,1582-01-01,Artefacts,Fujibayashi Naoe; Yasuke,Assassin's Creed Shadows,Japan,Shared source,Shared artefact,,A shared memory.
+`;
+  const { events, warnings } = loadEvents(csv);
+  assert.equal(events.length, 6);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /CE was inferred/);
-  assert.equal(new Set(events.map(({ game }) => game)).size, 18);
-  assert.equal(Math.min(...events.map(({ year }) => year)), -77000);
-  assert.equal(Math.max(...events.map(({ year }) => year)), 2030);
-  const staff = events.find(({ title }) => title === "Manufacture of Staff of Hermes Trismegistus");
+  const staff = events.find(({ title }) => title === "Ancient staff");
   assert.equal(staff.year, -75100);
   assert.equal(staff.approx, true);
-  assert.equal(events.find(({ title }) => title === "Trojan War").year, -1260);
-  assert.equal(events.find(({ title }) => title === "Shroud of Eden Created").source, "Timeline | Assassin's Creed Wiki");
-  const vinland = events.find(({ title }) => title === "Eivor is Laid to Rest in Vinland");
+  assert.equal(staff.source, "Ancient source");
+  const vinland = events.find(({ title }) => title === "Vinland burial");
   assert.equal(vinland.year, 920);
   assert.equal(vinland.eraInferred, true);
-  const twins = events.find(({ title }) => title.startsWith("Birth of Jacob"));
+  const twins = events.find(({ title }) => title === "Birth of the twins");
   assert.equal(twins.location, "Crawley, England");
   assert.equal(twins.start, "1847-01-01");
   assert.equal(twins.end, "1847-11-09");
   assert.equal(filterEvents(events, { query: "Crawley" })[0].id, twins.id);
-  const induction = events.find(({ title }) => title.startsWith("Jacob and Evie Frye are inducted"));
+  const induction = events.find(({ title }) => title === "Induction of the twins");
   assert.equal(induction.year, 1868);
   assert.equal(induction.start, "1860-01-01");
   assert.equal(induction.end, "1868-01-01");
   assert.equal(formatSourceDate(staff.start), "1 Jan 75,100 BCE");
   assert.equal(formatSourceDate(twins.end), "9 Nov 1847 CE");
   const shadows = filterEvents(events, { games: ["Assassin's Creed Shadows"] });
-  assert.equal(shadows.length, 9);
-  assert.equal(filterEvents(events, { characters: ['Fujibayashi Naoe'] }).length, 7);
-  assert.equal(filterEvents(events, { characters: ['Yasuke'] }).length, 6);
-  assert.equal(filterEvents(events, { characters: ['Jacob Frye'] }).length, 3);
+  assert.equal(shadows.length, 2);
+  assert.equal(filterEvents(events, { characters: ['Fujibayashi Naoe'] }).length, 2);
+  assert.equal(filterEvents(events, { characters: ['Yasuke'] }).length, 1);
+  assert.equal(filterEvents(events, { characters: ['Jacob Frye'] }).length, 2);
   assert.ok(shadows.every(({ year, era, location, source }) => year >= 1564 && year <= 1582 && era === "CE" && location && source));
-  assert.equal(shadows.filter(({ approx }) => approx).length, 6);
-  assert.equal(filterEvents(shadows, { categories: ["Artefacts"] }).length, 3);
-  const naoe = shadows.find(({ title }) => title === "Fujibayashi Naoe is born");
+  assert.equal(shadows.filter(({ approx }) => approx).length, 1);
+  assert.equal(filterEvents(shadows, { categories: ["Artefacts"] }).length, 1);
+  const naoe = shadows.find(({ title }) => title === "Naoe birth");
   assert.equal(naoe.year, 1564);
   assert.equal(naoe.approx, true);
   assert.equal(naoe.location, "Iga Province, Japan");
-  assert.match(naoe.description, /plotting placeholder/);
+  assert.equal(naoe.description, "An approximate date.");
+});
+
+test("new games and duplicate rows can be added without changing existing memory IDs", () => {
+  const original = "Year,Era,Title,Character,Game\n1500,CE,Original memory,Ezio,Original game\n";
+  const addition = "2500,CE,Future memory,New hero,Future game\n";
+  const { events: before } = loadEvents(original);
+  const { events: after, warnings } = loadEvents(original + addition + addition);
+  assert.equal(after.length, before.length + 2);
+  assert.deepEqual(warnings, []);
+  assert.equal(after[0].id, before[0].id);
+  assert.equal(new Set(after.map(({ id }) => id)).size, after.length);
+  assert.equal(after[2].id, `${after[1].id}-2`);
+  assert.equal(filterEvents(after, { games: ["Future game"] }).length, 2);
+  assert.equal(Math.max(...after.map(({ year }) => year)), 2500);
 });
 
 test("missing eras are inferred only from a matching signed year", () => {
