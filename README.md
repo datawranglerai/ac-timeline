@@ -97,6 +97,6 @@ After the first successful deployment, the default public address is **https://d
 - `assets/avatars/` — preserved uploads plus [prepared character artwork](assets/avatars/README.md).
 - `tests/` — unit and optional browser verification.
 
-Earlier AmCharts/D3 experiments remain in their original files. The new app starts at `index.html`.
+The app starts at `index.html`. Earlier AmCharts/D3 experiments are preserved in Git history.
 
 Assassin’s Creed belongs to Ubisoft. This is an independent fan project. The hero is the project creator’s PS5 screenshot from Assassin’s Creed Mirage. The Renaissance card’s Florence illustration was created with the built-in image-generation tool; the Kenway image is an optimized derivative of an existing repository asset. Google Fonts supplies the display/UI fonts with local system fallbacks if unavailable.

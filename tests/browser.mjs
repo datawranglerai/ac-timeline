@@ -208,7 +208,7 @@ try {
   checks.push('cluster drill-down, curated eras, and character journey');
 
   await page.getByRole('button', { name: /About the project/ }).click();
-  assert.match(await page.locator('#info-content').innerText(), /compresses data-free gaps/);
+  assert.match(await page.locator('#info-content').innerText(), /Any gap in the data longer than 2,000 years gets compressed/);
   const sourceUrl = await page.locator('#info-content a[download]').getAttribute('href');
   assert.equal(sourceUrl, `./${DATASET_PATH}`);
   const downloadedSource = await page.request.get(new URL(sourceUrl, base).href);
