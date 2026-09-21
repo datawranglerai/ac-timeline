@@ -2447,6 +2447,32 @@ html:has(#memory-dialog[open]) {
   text-underline-offset:3px
 }
 
+.project-support {
+  margin-top:24px;
+  padding-top:22px;
+  border-top:1px solid var(--line)
+}
+
+.project-support p {
+  margin-bottom:12px
+}
+
+.info-body .coffee-button {
+  justify-content:center;
+  gap:10px;
+  min-height:44px;
+  color:#19201a;
+  font-family:var(--sans);
+  font-size:12px;
+  text-decoration:none
+}
+
+.coffee-button svg {
+  width:18px;
+  height:18px;
+  flex:none
+}
+
 .cluster-list {
   margin-top:24px
 }
