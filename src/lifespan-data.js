@@ -11,7 +11,7 @@ export const LIFESPANS = {
       { start: -75000, end: 2018, kind: 'continuation' },
       { start: 2018, end: 2018, kind: 'life' },
     ],
-    note: 'Born in the Isu calendar, which cannot be reliably converted to BCE. Her original body died around 75,000 BCE; stored consciousness survived until her clone body was killed in 2018. The long dashed span represents that continuation, not one continuously living body.',
+    note: 'Her birth is recorded in the Isu calendar, which cannot be reliably converted to BCE. Her original body died around 75,000 BCE. Her stored consciousness survived until her clone body was killed in 2018. The long dashed span shows that continuation, not one continuously living body.',
     sources: [ac('Juno'), ac('Isu')],
   },
   jupiter: {
@@ -29,7 +29,7 @@ export const LIFESPANS = {
   kassandra: {
     birthYear: -458, deathYear: 2018,
     firstKnownYear: -458, lastKnownYear: 2018,
-    note: 'The Staff of Hermes sustained her physical life across more than two millennia. She died after passing it to Layla in 2018; her long solid bar is intentional.',
+    note: 'The Staff of Hermes sustained her physical life for more than two millennia. She died after passing it to Layla in 2018. The long solid bar is intentional.',
     sources: [ac('Kassandra'), { title: 'Ubisoft · Odyssey and Valhalla crossover', url: 'https://news.ubisoft.com/es-mx/article/2wfc7NcxEXzjOGiY6AGjnB/assassins-creed-valhalla-revela-la-expansin-el-amanecer-del-ragnark-y-el-crossover-entre-historias-gratis' }],
   },
   aya: {
@@ -48,7 +48,7 @@ export const LIFESPANS = {
     birthYear: null, deathYear: null,
     firstKnownYear: -48, lastKnownYear: 873, kind: 'recorded',
     sightings: [-48, -38, 873],
-    note: 'Dated appearances place Reda in Egypt in 48 and 38 BCE and in England in 873 CE. Neither his birth, death, nor the explanation for his longevity is established. The dashed span connects known appearances, rather than claiming immortality.',
+    note: 'Dated appearances place Reda in Egypt in 48 and 38 BCE, and in England in 873 CE. His birth, death and the reason for his longevity are unknown. The dashed span connects known appearances; it does not claim that he is immortal.',
     sources: [ac('Reda')],
   },
   basim: {
@@ -59,43 +59,43 @@ export const LIFESPANS = {
       { start: 877, end: 2020, kind: 'continuation' },
       { start: 2020, end: 2020, kind: 'life' },
     ],
-    note: 'Around 844 is the biographical estimate; the supplied event CSV instead records 835. Imprisonment in Yggdrasil around 877 was not death. The dashed span shows suspension before his physical return in 2020. No death is recorded.',
+    note: 'His estimated birth year is around 844; the supplied event CSV records 835. Imprisonment in Yggdrasil around 877 was not death. The dashed span shows his suspension before he physically returned in 2020. No death is recorded.',
     sources: [ac('Basim_ibn_Ishaq'), { title: 'Ubisoft · Assassin’s Creed Mirage', url: 'https://www.ubisoft.com/en-gb/game/assassins-creed/mirage' }],
   },
   eivor: {
     birthYear: 847, deathYear: null, deathLabel: 'After 889 CE',
     firstKnownYear: 847, lastKnownYear: 889,
-    note: 'Her burial is known, but the year is not established. The event CSV’s approximate 920 entry is explicitly speculative. This view shows the documented lower bound after 889 and keeps the lifespan open.',
+    note: 'Her burial is known, but its date is not. The event CSV’s approximate 920 entry is explicitly speculative. This view uses the documented lower bound after 889 and keeps the lifespan open.',
     sources: [ac('Eivor_Varinsdottir')],
   },
   hytham: {
     birthYear: 850, birthApprox: true, birthLabel: '850s CE', deathYear: null,
     firstKnownYear: 850, lastKnownYear: 889,
-    note: 'The birth date is known only to the decade. The visual starts at the beginning of the 850s as an approximate bound. Activity is documented around 889; the open end is not a death date.',
+    note: 'His birth is known only to the decade. The bar starts at the beginning of the 850s as an approximate bound. His activity is documented around 889; the open end is not a death date.',
     sources: [ac('Hytham')],
   },
   altair: {
     birthYear: 1165, deathYear: 1257,
     firstKnownYear: 1165, lastKnownYear: 1257,
-    note: 'Both biographical endpoints are dated. These years agree with the birth and death entries in the supplied event CSV.',
+    note: 'His birth and death are both dated. These years agree with the entries in the supplied event CSV.',
     sources: [ac('Alta%C3%AFr_Ibn-La%27Ahad')],
   },
   almualim: {
     birthYear: null, deathYear: 1191,
     firstKnownYear: 1176, lastKnownYear: 1191, kind: 'recorded',
-    note: 'His birth year is not established. The dashed span uses his recorded activity before his death in 1191; 1176 is an appearance, not a birth. The historical person who inspired him is not substituted for the game character.',
+    note: 'His birth year is unknown. The dashed span shows his recorded activity before his death in 1191; 1176 is an appearance, not a birth. This record covers the game character, not the historical figure who inspired him.',
     sources: [ac('Al_Mualim'), ac('Assassination_%28Al_Mualim%29')],
   },
   ezio: {
     birthYear: 1459, deathYear: 1524,
     firstKnownYear: 1459, lastKnownYear: 1524,
-    note: 'The dated physical life of Ezio Auditore. Both endpoints agree with the supplied event CSV.',
+    note: 'Ezio Auditore’s birth and death are both dated and agree with the supplied event CSV.',
     sources: [ac('Ezio_Auditore_da_Firenze')],
   },
   yasuke: {
     birthYear: 1554, birthApprox: true, deathYear: null,
     firstKnownYear: 1579, lastKnownYear: 1582,
-    note: 'The approximate birth year is derived from the Shadows database reporting an age of 26 or 27 at the March 1581 audience. It is not an exact biographical date. The open end uses the documented story window, not an inferred death.',
+    note: 'The approximate birth year comes from the Shadows database, which gives his age as 26 or 27 at the March 1581 audience. It is not an exact date. The open end marks the documented story window, not an inferred death.',
     sources: [ac('Database%3A_Yasuke_%28Shadows%29'), { title: 'Ubisoft Québec · Meet Naoe and Yasuke', url: 'https://quebec.ubisoft.com/en/assassins-creed-shadows-launches-november-15-features-dual-protagonists-in-feudal-japan/' }],
   },
   naoe: {
@@ -143,7 +143,7 @@ export const LIFESPANS = {
   aiden: {
     birthYear: 1974, deathYear: null,
     firstKnownYear: 1974, lastKnownYear: 2013,
-    note: 'No death is recorded. The open bar uses the dated Watch Dogs period. Ubisoft also confirms his later return in Bloodline, but that source does not establish an exact year, so no later endpoint is invented.',
+    note: 'No death is recorded. The open bar covers the dated Watch Dogs period. Ubisoft also confirms his later return in Bloodline, but that source gives no exact year, so no later endpoint is shown.',
     sources: [{ title: 'Watch Dogs Wiki · Aiden Pearce', url: 'https://watchdogs.fandom.com/wiki/Aiden_Pearce' }, { title: 'Ubisoft · Bloodline expansion', url: 'https://news.ubisoft.com/en-us/article/4pVWehK1u9eZWfVC4LD7DS/watch-dogs-legion-bloodline-expansion-out-now' }],
   },
   layla: {
