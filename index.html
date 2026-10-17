@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#111715">
-    <meta name="description" content="Explore the hidden history of Assassin's Creed. An interactive timeline of the Isu, Assassins, and Pieces of Eden, across thousands of years.">
+    <meta name="description" content="Browse Assassin's Creed history on an interactive timeline covering the Isu, Assassins and Pieces of Eden across thousands of years.">
     <title>The Animus Archive — An Assassin's Creed Timeline</title>
     <link rel="icon" href="./assets/logos/Assassin's Creed Logo Gold.svg" type="image/svg+xml" sizes="any">
     <link rel="preload" href="./assets/ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231221145000.jpg" as="image">
@@ -70,7 +70,7 @@
               <div class="timeline-viewport" id="timeline-viewport" tabindex="0" role="region" aria-label="Interactive timeline. Use plus and minus to zoom, arrow keys to pan, and Home to reset.">
                 <div class="time-axis" id="time-axis" aria-hidden="true"></div>
                 <div class="plot-area" id="plot-area"></div>
-                <div class="timeline-gap" id="timeline-gap" hidden><p>No memories in this period.</p><span>Keep panning or zoom out to explore.</span><button class="secondary-button" data-action="fit-matches">Show matching memories</button></div>
+                <div class="timeline-gap" id="timeline-gap" hidden><p>No memories in this period.</p><span>Keep panning, or zoom out.</span><button class="secondary-button" data-action="fit-matches">Show matching memories</button></div>
               </div>
             </div>
             <div class="chart-footer"><p><span data-icon="hand"></span> Drag to travel <span class="footer-separator">·</span> Scroll to zoom <span class="footer-separator">·</span> Select a memory to explore</p><div class="zoom-controls"><button id="pan-left" class="icon-button" aria-label="Pan earlier"><span data-icon="left"></span></button><button id="zoom-out" class="icon-button" aria-label="Zoom out"><span data-icon="minus"></span></button><span id="zoom-level">1×</span><button id="zoom-in" class="icon-button" aria-label="Zoom in"><span data-icon="plus"></span></button><button id="pan-right" class="icon-button" aria-label="Pan later"><span data-icon="right"></span></button></div></div>
@@ -91,11 +91,11 @@
           <div class="lifespan-rows" id="lifespan-rows"></div>
           <div class="lifespan-legend"><span><i class="life-key"></i> Dated life</span><span><i class="life-key dashed"></i> Known / continued presence</span><span><i class="life-key open"></i> Open or approximate endpoint</span><span id="lifespan-break-note" hidden>// Long gaps compressed</span></div>
         </div>
-        <p class="character-gallery-note">Ordered by birth or earliest known presence. Hover or focus to compare overlapping lives; select a lifespan for its sources.</p>
+        <p class="character-gallery-note">Ordered by birth or earliest known presence. Hover or focus to compare overlapping lives. Select a lifespan to see its sources.</p>
       </section>
 
       <section class="discover page-width" aria-labelledby="discover-title">
-        <div class="discover-heading"><div><p class="eyebrow muted">JUST WANT TO EXPLORE?</p><h2 id="discover-title">History has its turning points.</h2></div><button class="text-button" data-action="surprise" data-analytics-event="random-memory" data-analytics-title="Find me a memory">Find me a memory <span data-icon="right"></span></button></div>
+        <div class="discover-heading"><div><p class="eyebrow muted">JUST WANT TO EXPLORE?</p><h2 id="discover-title">Choose where to begin.</h2></div><button class="text-button" data-action="surprise" data-analytics-event="random-memory" data-analytics-title="Find me a memory">Find me a memory <span data-icon="right"></span></button></div>
         <div class="discovery-grid">
           <button class="discovery-card isu-card" data-era-card="isu" data-analytics-event="discover-isu" data-analytics-title="Explore the Isu discovery card"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Valhalla/Assassin's Creed® Valhalla_20210408204857.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">01</span><span>BEFORE THE CREED</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>THE FIRST CIVILIZATION</small><strong>Those who came before.</strong><span>Discover the world of the Isu <span aria-hidden="true">→</span></span></span></button>
           <button class="discovery-card mirage-card" data-era-card="medieval" data-analytics-event="discover-mirage" data-analytics-title="Explore the Mirage discovery card" data-game-card="Assassin's Creed Mirage"><img class="discovery-image" src="./assets/ps5-screenshots/Assassin's Creed® Mirage/Assassin's Creed® Mirage_20231206204713.jpg" alt="" width="3840" height="2160" loading="lazy" decoding="async"><span class="discovery-top"><span class="card-index">02</span><span>ASSASSIN’S CREED MIRAGE</span><span data-icon="up-right"></span></span><span class="discovery-copy"><small>9TH-CENTURY BAGHDAD</small><strong>A Hidden One’s beginning.</strong><span>Follow Basim in Baghdad <span aria-hidden="true">→</span></span></span></button>
@@ -104,7 +104,7 @@
       </section>
     </main>
 
-    <footer class="site-footer page-width"><div class="footer-brand"><img src="./assets/logos/Assassin's Creed Logo Gold.svg" alt="" width="23" height="32"><span>THE ANIMUS ARCHIVE</span></div><p>An independent fan project. Assassin’s Creed belongs to Ubisoft.</p><button class="text-button" data-action="about">Built for the curious <span aria-hidden="true">↗</span></button></footer>
+    <footer class="site-footer page-width"><div class="footer-brand"><img src="./assets/logos/Assassin's Creed Logo Gold.svg" alt="" width="23" height="32"><span>THE ANIMUS ARCHIVE</span></div><p>An independent fan project. Assassin’s Creed belongs to Ubisoft.</p><button class="text-button" data-action="about">About this site <span aria-hidden="true">↗</span></button></footer>
     <dialog class="memory-dialog" id="memory-dialog" aria-labelledby="memory-title"><div id="memory-content"></div></dialog>
     <dialog class="info-dialog" id="info-dialog" aria-labelledby="info-title"><div id="info-content"></div></dialog>
   </body>
