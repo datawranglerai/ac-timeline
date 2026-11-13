@@ -1,4 +1,9 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { DATASET_PATH, loadEvents } from '../src/data.js';
+
+const { events } = loadEvents(await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), 'utf8'));
+const shadowsCount = events.filter(({ game }) => game === "Assassin's Creed Shadows").length;
 
 async function range(page) {
   return page.locator('#overview-selection').evaluate((selection) => [parseFloat(selection.style.left) / 100, parseFloat(selection.style.width) / 100]);
@@ -113,12 +118,12 @@ export async function checkFastNavigation(page, { mobile = false } = {}) {
   assert.equal(await page.locator('#empty-state').isVisible(), false);
   await page.locator('#timeline-gap button').click();
   assert.equal(await shadows.isChecked(), true);
-  assert.match(await page.locator('#visible-status').innerText(), /9 of 96/);
+  assert.match(await page.locator('#visible-status').innerText(), new RegExp(`${shadowsCount} of ${events.length}`));
   await page.locator('[data-era="isu"]').click();
   await page.getByRole('button', { name: 'Chronological list view', exact: true }).click();
   await page.locator('#empty-state').getByRole('button', { name: 'Show matching memories', exact: true }).click();
   assert.equal(await shadows.isChecked(), true);
-  assert.equal(await page.locator('.list-memory').count(), 9);
+  assert.equal(await page.locator('.list-memory').count(), shadowsCount);
   await page.locator('#clear-filters').click();
   await page.getByRole('button', { name: 'Timeline view', exact: true }).click();
   await page.locator('#reset-view').click();

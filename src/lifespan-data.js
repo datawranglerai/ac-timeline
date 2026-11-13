@@ -59,13 +59,13 @@ export const LIFESPANS = {
       { start: 877, end: 2020, kind: 'continuation' },
       { start: 2020, end: 2020, kind: 'life' },
     ],
-    note: 'His estimated birth year is around 844; the supplied event CSV records 835. Imprisonment in Yggdrasil around 877 was not death. The dashed span shows his suspension before he physically returned in 2020. No death is recorded.',
+    note: 'His estimated birth year is around 844, matching the approximate event CSV entry. Imprisonment in Yggdrasil around 877 was not death. The dashed span shows his suspension before he physically returned in 2020. No death is recorded.',
     sources: [ac('Basim_ibn_Ishaq'), { title: 'Ubisoft · Assassin’s Creed Mirage', url: 'https://www.ubisoft.com/en-gb/game/assassins-creed/mirage' }],
   },
   eivor: {
     birthYear: 847, deathYear: null, deathLabel: 'After 889 CE',
     firstKnownYear: 847, lastKnownYear: 889,
-    note: 'Her burial is known, but its date is not. The event CSV’s approximate 920 entry is explicitly speculative. This view uses the documented lower bound after 889 and keeps the lifespan open.',
+    note: 'Her burial is known, but its date is not. The event CSV labels the burial as undated; 920 is a plotting position only. This view uses the documented lower bound after 889 and keeps the lifespan open.',
     sources: [ac('Eivor_Varinsdottir')],
   },
   hytham: {
@@ -131,13 +131,13 @@ export const LIFESPANS = {
   eviefrye: {
     birthYear: 1847, deathYear: null,
     firstKnownYear: 1847, lastKnownYear: 1914,
-    note: 'Evie and Jacob were born on the same day. Their death dates are not established. The 1917 death entry in the supplied CSV is not used as a lifespan fact; the known record includes their relocation in 1914.',
+    note: 'Evie and Jacob were born on the same day. Their death dates are not established. The CSV labels their deaths as undated and does not establish a 1917 death year; the known record includes their relocation in 1914.',
     sources: [ac('Evie_Frye')],
   },
   jacobfrye: {
     birthYear: 1847, deathYear: null,
     firstKnownYear: 1847, lastKnownYear: 1914,
-    note: 'Jacob and Evie were born on the same day. Their death dates are not established. The 1917 death entry in the supplied CSV is not used as a lifespan fact; the known record includes their relocation in 1914.',
+    note: 'Jacob and Evie were born on the same day. Their death dates are not established. The CSV labels their deaths as undated and does not establish a 1917 death year; the known record includes their relocation in 1914.',
     sources: [ac('Jacob_Frye')],
   },
   aiden: {

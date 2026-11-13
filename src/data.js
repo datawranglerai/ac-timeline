@@ -123,6 +123,7 @@ export function loadEvents(text) {
       approx: /^(true|yes|1)$/i.test(trimmed(row, "Approx")),
       era,
       eraInferred,
+      dateStatus: trimmed(row, "Date Status"),
       start: trimmed(row, "Start"),
       end: trimmed(row, "End"),
       location: trimmed(row, "Location"),
@@ -170,6 +171,13 @@ export function formatYear(year, approx = false) {
   const displayedYear = magnitude.toLocaleString("en-GB", { useGrouping: magnitude >= 5000 });
   const label = `${displayedYear} ${numericYear < 0 ? "BCE" : "CE"}`;
   return approx ? `c. ${label}` : label;
+}
+
+/** Undated rows retain a plotting anchor without claiming it as an event date. */
+export function formatEventDate(event) {
+  return event.dateStatus === 'Undated'
+    ? `Undated · placed at ${formatYear(event.year, true)}`
+    : formatYear(event.year, event.approx);
 }
 
 export function formatSourceDate(value) {

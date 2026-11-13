@@ -57,13 +57,9 @@ export async function checkLifespans(browser, base) {
     await page.keyboard.press('Escape');
 
     await page.locator('[data-character-journey="connor"]').click();
-    assert.match(await page.locator('#memory-content .character-life-summary').innerText(), /1756 CE[\s\S]*Unknown/);
-    assert.equal(await page.locator('.memory-year').count(), 0);
-    await page.locator('#memory-content [data-life-details="connor"]').click();
-    assert.equal(await page.locator('#info-title').innerText(), 'Connor');
-    await page.keyboard.press('Escape');
-    assert.equal(await page.locator('#memory-dialog').evaluate((dialog) => dialog.open), true);
-    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('input[name="characters"][value="Ratonhnhaké:ton"]').isChecked(), true);
+    assert.ok(await page.locator('.memory-marker').count() > 0, 'Connor’s character card opens his canonical timeline entries');
+    assert.equal(await page.locator('#memory-dialog').evaluate((dialog) => dialog.open), false);
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     mobile.on('pageerror', (error) => errors.push(error.message));

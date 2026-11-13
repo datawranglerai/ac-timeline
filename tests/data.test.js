@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { DATASET_PATH, parseCSV, loadEvents, filterEvents, formatYear, formatSourceDate, shortGame } from "../src/data.js";
+import { DATASET_PATH, parseCSV, loadEvents, filterEvents, formatYear, formatEventDate, formatSourceDate, shortGame } from "../src/data.js";
 
 test("parseCSV handles BOM, CRLF, escaped quotes, and multiline fields", () => {
   const rows = parseCSV('\uFEFFYear,Era,Title,Description\r\n1,CE,"A, title","line one\r\nline ""two"""\r\n');
@@ -19,6 +19,7 @@ test("loadEvents validates headers and skips invalid dates", () => {
     approx: true,
     era: "BCE",
     eraInferred: false,
+    dateStatus: "",
     start: "",
     end: "",
     location: "",
@@ -31,6 +32,14 @@ test("loadEvents validates headers and skips invalid dates", () => {
     image: "",
     untitled: true,
   });
+});
+
+test("undated records disclose their plotting anchor instead of asserting an event date", () => {
+  const { events } = loadEvents('Year,Era,Title,Date Status\n920,CE,Unknown burial date,Undated\n');
+  assert.equal(events[0].dateStatus, 'Undated');
+  assert.equal(formatEventDate(events[0]), 'Undated · placed at c. 920 CE');
+  assert.equal(formatEventDate({ year: -458, approx: true }), 'c. 458 BCE');
+  assert.equal(formatEventDate({ year: 2012, approx: false }), '2012 CE');
 });
 
 test("the current dataset loads every source row and preserves its dates and metadata", async () => {
