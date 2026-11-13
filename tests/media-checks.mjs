@@ -1,4 +1,15 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { DATASET_PATH, loadEvents } from '../src/data.js';
+import { CHARACTERS, charactersForEvent } from '../src/characters.js';
+
+const sourceCsv = await readFile(new URL(`../${DATASET_PATH}`, import.meta.url), 'utf8');
+const { events: sourceEvents } = loadEvents(sourceCsv);
+const total = sourceEvents.length;
+const eventsFor = (id) => sourceEvents.filter((event) => charactersForEvent(event).some((character) => character.id === id));
+const ezioEvent = eventsFor('ezio').find(({ title }) => /born|birth/i.test(title)) || eventsFor('ezio')[0];
+const sharedShadowsEvent = sourceEvents.find((event) => ['naoe', 'yasuke'].every((id) => charactersForEvent(event).some((character) => character.id === id)));
+const noPortraitEvent = sourceEvents.find((event) => charactersForEvent(event).length === 0);
 
 export async function checkCharacterMedia(browser, base) {
   const errors = [];
@@ -14,14 +25,14 @@ export async function checkCharacterMedia(browser, base) {
     assert.equal(await page.locator('.character-card').count(), 24);
     assert.ok(await page.locator('.memory-marker:not(.has-portrait)').count() > 0);
 
-    await page.locator('#search').fill('Shroud of Eden Created');
+    await page.locator('#search').fill(noPortraitEvent.title);
     assert.equal(await page.locator('.memory-marker').count(), 1);
     assert.equal(await page.locator('.memory-marker.has-portrait').count(), 0);
     await page.locator('.memory-marker').click();
     assert.equal(await page.locator('.memory-gif').count(), 0);
     await page.keyboard.press('Escape');
 
-    await page.locator('#search').fill('Ezio is Born');
+    await page.locator('#search').fill(ezioEvent.title);
     const ezio = page.locator('.memory-marker.has-portrait');
     assert.equal(await ezio.count(), 1);
     assert.match(await ezio.locator('img').getAttribute('src'), /portraits\/ezio\.png$/);
@@ -48,7 +59,7 @@ export async function checkCharacterMedia(browser, base) {
     await page.getByRole('button', { name: 'Next characters', exact: true }).click();
     await page.waitForFunction((before) => document.querySelector('#character-gallery').scrollLeft > before, before);
     await page.locator('[data-character-journey="naoe"]').click();
-    assert.match(await page.locator('#visible-status').innerText(), /7 of 96/);
+    assert.match(await page.locator('#visible-status').innerText(), new RegExp(`${eventsFor('naoe').length} of ${total}`));
     assert.equal(await page.locator('input[name="characters"][value="Fujibayashi Naoe"]').isChecked(), true);
     assert.equal(await page.locator('input[name="characters"][value="Fujibayashi Naoe; Yasuke"]').count(), 0);
     assert.equal(await page.locator('#characters-label').innerText(), 'Characters · 1');
@@ -62,7 +73,7 @@ export async function checkCharacterMedia(browser, base) {
     await quiet.goto(base);
     await quiet.waitForSelector('.memory-marker');
     assert.equal(await quiet.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    await quiet.locator('#search').fill('Naoe and Yasuke become allies');
+    await quiet.locator('#search').fill(sharedShadowsEvent.title);
     assert.equal(await quiet.locator('.memory-marker .character-portrait').count(), 2);
     await quiet.locator('.memory-marker').click();
     await quiet.locator('.memory-gif').evaluate((image) => image.decode());
@@ -86,24 +97,33 @@ export async function checkCharacterMedia(browser, base) {
     await broken.route('**/GIFs/ezio.gif', (route) => route.abort());
     await broken.goto(base);
     await broken.waitForSelector('.memory-marker');
-    await broken.locator('#search').fill('Ezio is Born');
+    await broken.locator('#search').fill(ezioEvent.title);
     await broken.waitForFunction(() => document.querySelectorAll('.memory-marker').length === 1 && !document.querySelector('.memory-marker.has-portrait'));
     await broken.locator('.memory-marker').click();
     await broken.waitForFunction(() => document.querySelector('.memory-gif')?.getAttribute('src').endsWith('/posters/ezio.webp'));
     await broken.locator('.memory-gif').evaluate((image) => image.decode());
-    assert.equal(await broken.locator('#memory-title').innerText(), 'Ezio is Born');
+    assert.equal(await broken.locator('#memory-title').innerText(), ezioEvent.title);
     await broken.close();
 
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    for (const [id, name] of [['connor', 'Connor'], ['minerva', 'Minerva'], ['jupiter', 'Jupiter']]) {
+    await page.locator('#clear-filters').click();
+    const connorCard = page.locator('[data-character-journey="connor"]');
+    assert.match(await connorCard.innerText(), new RegExp(`${eventsFor('connor').length} MEMOR`));
+    await connorCard.click();
+    assert.equal(await page.locator('input[name="characters"][value="Ratonhnhaké:ton"]').isChecked(), true);
+    assert.match(await page.locator('#visible-status').innerText(), new RegExp(`${eventsFor('connor').length} of ${total}`));
+
+    const unrecorded = CHARACTERS.filter((character) => eventsFor(character.id).length === 0).slice(0, 2);
+    for (const { id, displayName, name } of unrecorded) {
       const card = page.locator(`[data-character-journey="${id}"]`);
       assert.match(await card.innerText(), /NO MEMORIES YET/);
       await card.click();
-      assert.equal(await page.locator('#memory-title').innerText(), name);
-      assert.match(await page.locator('.memory-description').innerText(), /timeline entries haven’t been added yet/);
+      assert.equal(await page.locator('#memory-title').innerText(), displayName || name);
+      assert.match(await page.locator('.memory-description').innerText(), /has no timeline entries yet/);
       assert.equal(await page.locator('.memory-year').count(), 0, 'Character previews must not invent event dates');
       assert.equal(await page.locator('.memory-marker.is-selected').count(), 0);
-      if (id === 'jupiter') {
+      const character = CHARACTERS.find((entry) => entry.id === id);
+      if (!character.gif) {
         assert.equal(await page.locator('.memory-gif').count(), 0);
         await page.locator('.character-profile-art img').evaluate((image) => image.decode());
       } else {
@@ -113,7 +133,7 @@ export async function checkCharacterMedia(browser, base) {
       await page.getByRole('button', { name: 'Close character details', exact: true }).click();
       await page.waitForFunction(() => !document.querySelector('#memory-dialog').open);
       assert.equal(await card.evaluate((element) => document.activeElement === element), true);
-      assert.match(await page.locator('#visible-status').innerText(), /7 of 96/, 'Previewing unrecorded characters must preserve the current timeline');
+      assert.match(await page.locator('#visible-status').innerText(), new RegExp(`${eventsFor('connor').length} of ${total}`), 'Previewing unrecorded characters must preserve the current timeline');
     }
     assert.deepEqual(errors, []);
   } finally { await page.close(); }

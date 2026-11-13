@@ -38,14 +38,16 @@ Biography metadata lives in `src/lifespan-data.js`, with source links and notes 
 Append rows to `data/Assassin's Creed Timeline - Data V3.csv`, retaining its header. The shared `DATASET_PATH` in `src/data.js` controls the live app, download link, build, and dataset tests.
 
 ```csv
-Year,Approx,Era,Real Year,Start,End,Category,Character,Game,Location,Source,Title,Image,Description
+Year,Approx,Era,Real Year,Start,End,Category,Character,Game,Location,Source,Title,Image,Description,Date Status
 ```
 
-`Year` is a positive integer and `Era` is `BCE` or `CE`. `Approx` accepts `TRUE` or `FALSE`. The timeline point comes from `Year` and `Era`. If `Era` is blank, a signed `Real Year` with the same magnitude supplies it; this inference is disclosed in the app. An invalid or contradictory fallback never silently replaces an explicit date. `Start` and `End` are preserved and displayed as recorded dates in the details, including signed BCE years; they do not move the year-based point or create duration bars. `Location` appears in details and is searchable. Quote CSV fields containing commas, quotes, or line breaks; double any quote within a quoted field.
+`Year` is a positive integer and `Era` is `BCE` or `CE`. `Approx` accepts `TRUE` or `FALSE`. The timeline point comes from `Year` and `Era`. If `Era` is blank, a signed `Real Year` with the same magnitude supplies it; this inference is disclosed in the app. An invalid or contradictory fallback never silently replaces an explicit date. `Start` and `End` are preserved and displayed as recorded dates in the details, including signed BCE years; they do not move the year-based point or create duration bars. `Date Status` is optional. Set it to `Undated` when no event date is established: the app labels the numeric year as a plotting position in markers, lists and details. Leave `Start` and `End` blank in those rows. Do not turn year-only evidence into a fabricated 1 January date. `Location` appears in details and is searchable. Quote CSV fields containing commas, quotes, or line breaks; double any quote within a quoted field.
 
 Filters, counts, bounds, and compressed gaps update automatically on reload. Optional blank values receive explicit fallbacks. Invalid dates are skipped with a visible warning. Sources are attribution text; URLs are not invented from source labels. `Image` can contain a relative path or an HTTP(S) URL. Add local assets under `images/` or `assets/` so the build includes them.
 
 V3 includes Shadows, with Naoe, Yasuke, and the Artefacts category. Record counts, game counts, and date bounds are derived from the current CSV. The timeline preserves the supplied chronology rather than claiming complete coverage or verifying the underlying lore.
+
+The [November 2026 dataset audit](docs/data-audit.md) documents review of all 110 original records, 16 focused additions, source limits and Reddit release findings. The [record ledger](data/audit/records.json) preserves the original rows and their corrections; [humanized descriptions](docs/data-humanization.md) records the prose pass.
 
 ## Build and verify
 
