@@ -1955,6 +1955,30 @@ h2 {
   object-position:68% center
 }
 
+.fan-project {
+  margin-top:24px;
+  max-width:65ch;
+  color:var(--muted);
+  line-height:1.6;
+  text-wrap:pretty
+}
+
+.fan-project-label {
+  margin-bottom:4px;
+  color:var(--ink);
+  font-weight:600
+}
+
+.fan-project a {
+  color:var(--gold);
+  text-decoration:underline;
+  text-underline-offset:3px
+}
+
+.fan-project a:hover {
+  color:var(--ink)
+}
+
 .site-footer {
   min-height:100px;
   border-top:1px solid #303a3280;
